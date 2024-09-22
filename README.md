@@ -1,4 +1,4 @@
-# React Authentication on Vercel
+# dehls - React Authentication on Vercel
 
 This JavaScript template demonstrates **how to implement user authentication** in React applications using Auth0. This template uses the React Router 6 library.
 
