@@ -33,10 +33,9 @@ const D3Visualization = () => {
         [3, 2, 6, 7]
       ];
 
-      // Set up rotation
       let timer = d3.timer((elapsed) => {
         const angle = elapsed * 0.001;
-        projectionMatrix = rotateY(angle) @ rotateX(angle * 0.7);
+        projectionMatrix = multiply(rotateY(angle), rotateX(angle * 0.7));
         update();
       });
 
