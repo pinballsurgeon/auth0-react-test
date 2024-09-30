@@ -1,9 +1,19 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
+const SHAPES = {
+  TETRAHEDRON: 'Tetrahedron',
+  CUBE: 'Cube',
+  OCTAHEDRON: 'Octahedron',
+  DODECAHEDRON: 'Dodecahedron',
+  ICOSAHEDRON: 'Icosahedron',
+  CUSTOM: 'Custom Polyhedron'
+};
+
 const D3Visualization = () => {
   const d3Container = useRef(null);
-  const [sides, setSides] = useState(6);
+  const [shape, setShape] = useState(SHAPES.CUBE);
+  const [customFaces, setCustomFaces] = useState(6);
   const [speed, setSpeed] = useState(1);
   const [fluctuation, setFluctuation] = useState(0);
 
@@ -19,11 +29,8 @@ const D3Visualization = () => {
       const g = svg.append('g')
         .attr('transform', `translate(${width/2},${height/2})`);
 
-      // Generate points for a regular polyhedron
-      const points = generatePolyhedronPoints(sides, scale);
-
-      // Generate faces
-      const faces = generateFaces(sides);
+      // Generate points and faces based on selected shape
+      const { points, faces } = generateShapeData(shape, customFaces, scale);
 
       let projectionMatrix = [
         [1, 0, 0],
@@ -88,22 +95,36 @@ const D3Visualization = () => {
 
       return () => timer.stop();
     }
-  }, [sides, speed, fluctuation]);
+  }, [shape, customFaces, speed, fluctuation]);
 
   return (
     <div className="d3-visualization-container">
       <div className="controls">
-        <div className="slider-container">
-          <label htmlFor="sides-slider">Sides: {sides}</label>
-          <input
-            id="sides-slider"
-            type="range"
-            min="4"
-            max="20"
-            value={sides}
-            onChange={(e) => setSides(parseInt(e.target.value))}
-          />
+        <div className="select-container">
+          <label htmlFor="shape-select">Shape:</label>
+          <select
+            id="shape-select"
+            value={shape}
+            onChange={(e) => setShape(e.target.value)}
+          >
+            {Object.values(SHAPES).map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </div>
+        {shape === SHAPES.CUSTOM && (
+          <div className="slider-container">
+            <label htmlFor="faces-slider">Faces: {customFaces}</label>
+            <input
+              id="faces-slider"
+              type="range"
+              min="4"
+              max="20"
+              value={customFaces}
+              onChange={(e) => setCustomFaces(parseInt(e.target.value))}
+            />
+          </div>
+        )}
         <div className="slider-container">
           <label htmlFor="speed-slider">Speed: {speed.toFixed(2)}</label>
           <input
@@ -139,27 +160,58 @@ const D3Visualization = () => {
   );
 };
 
-function generatePolyhedronPoints(sides, scale) {
-  const points = [];
-  const angleStep = Math.PI * 2 / sides;
-  for (let i = 0; i < sides; i++) {
-    const angle1 = i * angleStep;
-    const angle2 = (i + 1) * angleStep;
-    points.push([Math.cos(angle1) * scale, Math.sin(angle1) * scale, scale]);
-    points.push([Math.cos(angle2) * scale, Math.sin(angle2) * scale, scale]);
-    points.push([0, 0, -scale]);
+function generateShapeData(shape, customFaces, scale) {
+  switch (shape) {
+    case SHAPES.TETRAHEDRON:
+      return generateTetrahedron(scale);
+    case SHAPES.CUBE:
+      return generateCube(scale);
+    case SHAPES.OCTAHEDRON:
+      return generateOctahedron(scale);
+    case SHAPES.DODECAHEDRON:
+      return generateDodecahedron(scale);
+    case SHAPES.ICOSAHEDRON:
+      return generateIcosahedron(scale);
+    case SHAPES.CUSTOM:
+      return generateCustomPolyhedron(customFaces, scale);
+    default:
+      return generateCube(scale);
   }
-  return points;
 }
 
-function generateFaces(sides) {
-  const faces = [];
-  for (let i = 0; i < sides; i++) {
-    faces.push([i * 3, i * 3 + 1, i * 3 + 2]);
-  }
-  // Add the base
-  faces.push(Array.from({length: sides}, (_, i) => i * 3 + 1));
-  return faces;
+// Implement functions to generate points and faces for each shape
+function generateTetrahedron(scale) {
+  // Implementation for tetrahedron
+}
+
+function generateCube(scale) {
+  const points = [
+    [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+    [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+  ].map(p => p.map(c => c * scale));
+
+  const faces = [
+    [0, 1, 2, 3], [4, 5, 6, 7], [0, 4, 7, 3],
+    [1, 5, 6, 2], [0, 1, 5, 4], [3, 2, 6, 7]
+  ];
+
+  return { points, faces };
+}
+
+function generateOctahedron(scale) {
+  // Implementation for octahedron
+}
+
+function generateDodecahedron(scale) {
+  // Implementation for dodecahedron
+}
+
+function generateIcosahedron(scale) {
+  // Implementation for icosahedron
+}
+
+function generateCustomPolyhedron(faces, scale) {
+  // Implementation for custom polyhedron (similar to previous cone-like shape)
 }
 
 export default D3Visualization;

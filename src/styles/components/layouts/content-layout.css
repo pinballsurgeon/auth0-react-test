@@ -47,6 +47,7 @@
     font-size: 2.4rem;
   }
 }
+
 .d3-visualization-container {
   width: 100%;
   max-width: 800px;
@@ -59,21 +60,26 @@
 
 .controls {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   margin-bottom: 20px;
 }
 
+.select-container,
 .slider-container {
   display: flex;
   flex-direction: column;
-  width: 30%;
+  width: 48%;
+  margin-bottom: 10px;
 }
 
+.select-container label,
 .slider-container label {
   margin-bottom: 5px;
   color: var(--black);
 }
 
+select,
 input[type="range"] {
   width: 100%;
 }
