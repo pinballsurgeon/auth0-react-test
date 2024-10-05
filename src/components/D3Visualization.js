@@ -39,7 +39,7 @@ const D3Visualization = () => {
   useEffect(() => {
     if (!d3Container.current) {
       console.error('SVG container reference is still null');
-      return;
+      return; // Exit if container reference is not ready
     }
   
     // Clear previous SVG content
@@ -47,7 +47,14 @@ const D3Visualization = () => {
     svg.selectAll('*').remove();
   
     // Set up responsive SVG attributes
-    svg.attr('viewBox', `0 0 ${width} ${height}`).attr('preserveAspectRatio', 'xMidYMid meet');
+    const containerWidth = d3Container.current.clientWidth;
+    const containerHeight = d3Container.current.clientHeight;
+  
+    svg
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${containerWidth} ${containerHeight}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
   
     // Create group for geometry and center it
     const g = svg.append('g');
@@ -63,26 +70,25 @@ const D3Visualization = () => {
   
     if (!vertices || vertices.length === 0) {
       console.error('No vertices generated, unable to render geometry');
-      return;
+      return; // Exit early if no geometry is generated
     }
   
     // Calculate bounding box of vertices to determine scale and translation
     const xExtent = d3.extent(vertices, (d) => d[0]);
     const yExtent = d3.extent(vertices, (d) => d[1]);
-    const zExtent = d3.extent(vertices, (d) => d[2] || 0); // Optional for 3D projection
-  
-    // Calculate width, height, and center of bounding box
     const boundingWidth = Math.abs(xExtent[1] - xExtent[0]);
     const boundingHeight = Math.abs(yExtent[1] - yExtent[0]);
-    const boundingDepth = Math.abs(zExtent[1] - zExtent[0]);
   
-    // Set scale to fit geometry within SVG with some padding
-    const scale = Math.min(width / boundingWidth, height / boundingHeight) * 0.8;
+    // Set scale to fit geometry within SVG with padding
+    const scale = Math.min(
+      (containerWidth / boundingWidth) * 0.8,
+      (containerHeight / boundingHeight) * 0.8
+    );
   
     // Set projection dynamically based on geometry size
     const projection = d3.geoOrthographic()
       .scale(scale)
-      .translate([width / 2, height / 2])
+      .translate([containerWidth / 2, containerHeight / 2])
       .clipAngle(90);
   
     const path = d3.geoPath().projection(projection);
@@ -184,12 +190,21 @@ const D3Visualization = () => {
         })
     );
   
+    // Resize handling
+    window.addEventListener('resize', () => {
+      const newWidth = d3Container.current.clientWidth;
+      const newHeight = d3Container.current.clientHeight;
+      svg.attr('viewBox', `0 0 ${newWidth} ${newHeight}`);
+      projection.translate([newWidth / 2, newHeight / 2]);
+    });
+  
     // Clean up on component unmount
     return () => {
       timer.stop(); // Stop auto-rotation timer
       svg.on('.zoom', null); // Remove zoom events
       svg.on('.drag', null); // Remove drag events
       svg.selectAll('*').remove(); // Clear SVG content
+      window.removeEventListener('resize', () => {}); // Clean up resize event listener
     };
   }, [
     geometryType,
