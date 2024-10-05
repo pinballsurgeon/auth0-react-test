@@ -37,138 +37,161 @@ const D3Visualization = () => {
   }
 
   useEffect(() => {
-    if (d3Container.current) {
-      // Clear previous SVG content
-      const svg = d3.select(d3Container.current);
-      svg.selectAll('*').remove();
-
-      // Set up the SVG canvas
-      const g = svg
-        .append('g')
-        .attr('transform', `translate(${width / 2}, ${height / 2})`);
-
-      // Generate geometry based on parameters
-      const { vertices, edges, faces } = generateGeometry(
-        geometryType,
-        complexity,
-        symmetry,
-        dimension,
-        morphFactor
-      );
-
-      // Set up 3D projection
-      const projection = d3
-        .geoOrthographic()
-        .scale(200)
-        .translate([0, 0])
-        .clipAngle(90);
-
-      const path = d3.geoPath().projection(projection);
-
-      // Color scale
-      const color = d3[colorScheme];
-
-      // Render faces
-      g.selectAll('.face')
-        .data(faces)
-        .enter()
-        .append('path')
-        .attr('class', 'face')
-        .attr('d', (d) =>
-          path({
-            type: 'Polygon',
-            coordinates: [d.map((i) => vertices[i])],
-          })
-        )
-        .attr('fill', (d, i) => color[i % color.length])
-        .attr('stroke', '#000')
-        .attr('stroke-width', 0.5)
-        .attr('opacity', 0.8);
-
-      // Render edges
-      g.selectAll('.edge')
-        .data(edges)
-        .enter()
-        .append('path')
-        .attr('class', 'edge')
-        .attr('d', (d) =>
-          path({
-            type: 'LineString',
-            coordinates: d.map((i) => vertices[i]),
-          })
-        )
-        .attr('fill', 'none')
-        .attr('stroke', '#000')
-        .attr('stroke-width', 1);
-
-      // Rotation variables
-      let rotateX = 0;
-      let rotateY = 0;
-
-      // Animation loop
-      d3.timer((elapsed) => {
-        rotateY = (rotateY + animationSpeed) % 360;
-        projection.rotate([rotateY, rotateX]);
-        g.selectAll('path').attr('d', (d) => {
-          if (d.type === 'Polygon') {
-            return path({
-              type: 'Polygon',
-              coordinates: [d.coordinates[0]],
-            });
-          } else if (d.type === 'LineString') {
-            return path({
-              type: 'LineString',
-              coordinates: d.coordinates,
-            });
-          }
-        });
-      });
-
-      // Drag behavior
-      svg.call(
-        d3
-          .drag()
-          .on('start', (event) => {
-            const lastX = event.x;
-            const lastY = event.y;
-
-            svg.on('drag', (event) => {
-              const dx = event.x - lastX;
-              const dy = event.y - lastY;
-              rotateX = rotateX + dy * 0.5;
-              rotateY = rotateY + dx * 0.5;
-              projection.rotate([rotateY, rotateX]);
-              g.selectAll('path').attr('d', (d) => {
-                if (d.type === 'Polygon') {
-                  return path({
-                    type: 'Polygon',
-                    coordinates: [d.coordinates[0]],
-                  });
-                } else if (d.type === 'LineString') {
-                  return path({
-                    type: 'LineString',
-                    coordinates: d.coordinates,
-                  });
-                }
-              });
-            });
-          })
-          .on('end', () => {
-            svg.on('drag', null);
-          })
-      );
-
-      // Zoom behavior
-      svg.call(
-        d3
-          .zoom()
-          .scaleExtent([0.5, 5])
-          .on('zoom', (event) => {
-            g.attr('transform', `translate(${event.transform.x}, ${event.transform.y}) scale(${event.transform.k})`);
-          })
-      );
+    // Check if the SVG container reference is available
+    if (!d3Container.current) {
+      console.error('SVG container reference is still null');
+      return; // Exit early if reference is not available
     }
+  
+    // Clear previous SVG content
+    const svg = d3.select(d3Container.current);
+    svg.selectAll('*').remove();
+  
+    // Set up the SVG canvas group
+    const g = svg
+      .append('g')
+      .attr('transform', `translate(${width / 2}, ${height / 2})`);
+  
+    // Generate geometry based on parameters
+    const { vertices, edges, faces } = generateGeometry(
+      geometryType,
+      complexity,
+      symmetry,
+      dimension,
+      morphFactor
+    );
+  
+    if (!vertices || vertices.length === 0) {
+      console.error('No vertices generated, unable to render geometry');
+      return; // Exit early if no geometry is generated
+    }
+  
+    // Set up 3D projection
+    const projection = d3
+      .geoOrthographic()
+      .scale(200)
+      .translate([0, 0])
+      .clipAngle(90);
+  
+    const path = d3.geoPath().projection(projection);
+  
+    // Color scale
+    const color = d3[colorScheme] || d3.schemeCategory10;
+  
+    // Render faces
+    g.selectAll('.face')
+      .data(faces)
+      .enter()
+      .append('path')
+      .attr('class', 'face')
+      .attr('d', (d) =>
+        path({
+          type: 'Polygon',
+          coordinates: [d.map((i) => vertices[i])],
+        })
+      )
+      .attr('fill', (d, i) => color[i % color.length])
+      .attr('stroke', '#000')
+      .attr('stroke-width', 0.5)
+      .attr('opacity', 0.8);
+  
+    // Render edges
+    g.selectAll('.edge')
+      .data(edges)
+      .enter()
+      .append('path')
+      .attr('class', 'edge')
+      .attr('d', (d) =>
+        path({
+          type: 'LineString',
+          coordinates: d.map((i) => vertices[i]),
+        })
+      )
+      .attr('fill', 'none')
+      .attr('stroke', '#000')
+      .attr('stroke-width', 1);
+  
+    // Rotation variables
+    let rotateX = 0;
+    let rotateY = 0;
+  
+    // Animation loop for auto-rotation
+    const timer = d3.timer((elapsed) => {
+      rotateY = (rotateY + animationSpeed) % 360;
+      projection.rotate([rotateY, rotateX]);
+      g.selectAll('path').attr('d', (d) => {
+        if (d.type === 'Polygon') {
+          return path({
+            type: 'Polygon',
+            coordinates: [d.coordinates[0]],
+          });
+        } else if (d.type === 'LineString') {
+          return path({
+            type: 'LineString',
+            coordinates: d.coordinates,
+          });
+        }
+      });
+    });
+  
+    // Drag behavior for manual rotation
+    svg.call(
+      d3
+        .drag()
+        .on('start', (event) => {
+          timer.stop(); // Stop auto-rotation when dragging starts
+          const lastX = event.x;
+          const lastY = event.y;
+  
+          svg.on('drag', (event) => {
+            const dx = event.x - lastX;
+            const dy = event.y - lastY;
+            rotateX += dy * 0.5;
+            rotateY += dx * 0.5;
+            projection.rotate([rotateY, rotateX]);
+            g.selectAll('path').attr('d', (d) => {
+              if (d.type === 'Polygon') {
+                return path({
+                  type: 'Polygon',
+                  coordinates: [d.coordinates[0]],
+                });
+              } else if (d.type === 'LineString') {
+                return path({
+                  type: 'LineString',
+                  coordinates: d.coordinates,
+                });
+              }
+            });
+          });
+        })
+        .on('end', () => {
+          svg.on('drag', null);
+          timer.restart(); // Restart auto-rotation after dragging ends
+        })
+    );
+  
+    // Zoom behavior
+    svg.call(
+      d3
+        .zoom()
+        .scaleExtent([0.5, 5])
+        .on('zoom', (event) => {
+          g.attr(
+            'transform',
+            `translate(${event.transform.x}, ${event.transform.y}) scale(${event.transform.k})`
+          );
+        })
+    );
+  
+    // Clean up on component unmount to prevent memory leaks
+    return () => {
+      timer.stop(); // Stop the animation timer
+      svg.on('.zoom', null); // Remove zoom events
+      svg.on('.drag', null); // Remove drag events
+      svg.selectAll('*').remove(); // Clear SVG content
+    };
   }, [
+    d3Container.current,
     geometryType,
     complexity,
     symmetry,
@@ -177,6 +200,7 @@ const D3Visualization = () => {
     morphFactor,
     colorScheme,
   ]);
+  
 
   return (
     <motion.div
