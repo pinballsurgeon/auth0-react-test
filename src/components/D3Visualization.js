@@ -39,17 +39,18 @@ const D3Visualization = () => {
   useEffect(() => {
     if (!d3Container.current) {
       console.error('SVG container reference is still null');
-      return; // Exit if container reference is not ready
+      return;
     }
   
     // Clear previous SVG content
     const svg = d3.select(d3Container.current);
     svg.selectAll('*').remove();
   
-    // Set up the SVG canvas
-    const g = svg
-      .append('g')
-      .attr('transform', `translate(${width / 2}, ${height / 2})`);
+    // Set up responsive SVG attributes
+    svg.attr('viewBox', `0 0 ${width} ${height}`).attr('preserveAspectRatio', 'xMidYMid meet');
+  
+    // Create group for geometry and center it
+    const g = svg.append('g');
   
     // Generate geometry based on parameters
     const { vertices, edges, faces } = generateGeometry(
@@ -62,14 +63,26 @@ const D3Visualization = () => {
   
     if (!vertices || vertices.length === 0) {
       console.error('No vertices generated, unable to render geometry');
-      return; // Exit early if no geometry is generated
+      return;
     }
   
-    // Set up 3D projection
-    const projection = d3
-      .geoOrthographic()
-      .scale(200)
-      .translate([0, 0])
+    // Calculate bounding box of vertices to determine scale and translation
+    const xExtent = d3.extent(vertices, (d) => d[0]);
+    const yExtent = d3.extent(vertices, (d) => d[1]);
+    const zExtent = d3.extent(vertices, (d) => d[2] || 0); // Optional for 3D projection
+  
+    // Calculate width, height, and center of bounding box
+    const boundingWidth = Math.abs(xExtent[1] - xExtent[0]);
+    const boundingHeight = Math.abs(yExtent[1] - yExtent[0]);
+    const boundingDepth = Math.abs(zExtent[1] - zExtent[0]);
+  
+    // Set scale to fit geometry within SVG with some padding
+    const scale = Math.min(width / boundingWidth, height / boundingHeight) * 0.8;
+  
+    // Set projection dynamically based on geometry size
+    const projection = d3.geoOrthographic()
+      .scale(scale)
+      .translate([width / 2, height / 2])
       .clipAngle(90);
   
     const path = d3.geoPath().projection(projection);
@@ -122,7 +135,7 @@ const D3Visualization = () => {
           event.sourceEvent.stopPropagation(); // Prevent drag from triggering zoom
         })
         .on('drag', (event) => {
-          rotateY += event.dx * 0.3; // Adjust sensitivity of rotation
+          rotateY += event.dx * 0.3;
           rotateX -= event.dy * 0.3;
           projection.rotate([rotateY, rotateX]);
           g.selectAll('path').attr('d', (d) =>
@@ -142,7 +155,7 @@ const D3Visualization = () => {
     // Auto-rotation loop (optional, remove if only manual rotation is desired)
     const timer = d3.timer((elapsed) => {
       if (animationSpeed > 0) {
-        rotateY = (rotateY + animationSpeed * 0.02) % 360; // Adjust the speed scale
+        rotateY = (rotateY + animationSpeed * 0.02) % 360;
         projection.rotate([rotateY, rotateX]);
         g.selectAll('path').attr('d', (d) =>
           d.type === 'Polygon'
@@ -187,9 +200,6 @@ const D3Visualization = () => {
     morphFactor,
     colorScheme,
   ]);
-  
-  
-  
   
   
 
