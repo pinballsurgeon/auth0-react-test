@@ -218,8 +218,101 @@ const D3Visualization = () => {
       transition={{ duration: 0.5 }}
     >
       <div className="controls">
-        {/* Control elements for different parameters */}
-        {/* ... */}
+        <div className="control-group">
+          <label htmlFor="geometry-type">Geometry Type:</label>
+          <select
+            id="geometry-type"
+            value={geometryType}
+            onChange={(e) => setGeometryType(e.target.value)}
+          >
+            {Object.entries(GEOMETRY_TYPES).map(([key, value]) => (
+              <option key={key} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="complexity">Complexity: {complexity}</label>
+          <input
+            id="complexity"
+            type="range"
+            min="3"
+            max="20"
+            value={complexity}
+            onChange={(e) => setComplexity(parseInt(e.target.value))}
+          />
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="symmetry">Symmetry: {symmetry.toFixed(2)}</label>
+          <input
+            id="symmetry"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={symmetry}
+            onChange={(e) => setSymmetry(parseFloat(e.target.value))}
+          />
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="dimension">Dimension: {dimension}</label>
+          <input
+            id="dimension"
+            type="range"
+            min="2"
+            max="6"
+            value={dimension}
+            onChange={(e) => setDimension(parseInt(e.target.value))}
+          />
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="animation-speed">
+            Animation Speed: {animationSpeed.toFixed(2)}
+          </label>
+          <input
+            id="animation-speed"
+            type="range"
+            min="0"
+            max="5"
+            step="0.1"
+            value={animationSpeed}
+            onChange={(e) => setAnimationSpeed(parseFloat(e.target.value))}
+          />
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="morph-factor">
+            Morph Factor: {morphFactor.toFixed(2)}
+          </label>
+          <input
+            id="morph-factor"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={morphFactor}
+            onChange={(e) => setMorphFactor(parseFloat(e.target.value))}
+          />
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="color-scheme">Color Scheme:</label>
+          <select
+            id="color-scheme"
+            value={colorScheme}
+            onChange={(e) => setColorScheme(e.target.value)}
+          >
+            <option value="schemeCategory10">Category 10</option>
+            <option value="schemeAccent">Accent</option>
+            <option value="schemeDark2">Dark2</option>
+            <option value="schemeSet1">Set1</option>
+          </select>
+        </div>
       </div>
 
       <svg
@@ -385,7 +478,8 @@ function interpolateVertices(vertices1, vertices2, t) {
 function extractEdges(faces) {
   const edges = new Set();
   faces.forEach((face) => {
-    for (let i = 0; i < face.length; i++) {
+    for (let i = 0; i < face.length; i++)
+  {
       const a = face[i];
       const b = face[(i + 1) % face.length];
       edges.add([Math.min(a, b), Math.max(a, b)].toString());
