@@ -30,6 +30,12 @@ const D3Visualization = () => {
   const width = 800;
   const height = 600;
 
+  if (!d3Container.current) {
+    console.error('SVG container reference is null');
+  } else {
+    console.log('SVG container reference is valid');
+  }
+
   useEffect(() => {
     if (d3Container.current) {
       // Clear previous SVG content
@@ -278,10 +284,11 @@ const D3Visualization = () => {
       </div>
 
       <svg
-        className="d3-container"
-        width={width}
-        height={height}
-        ref={d3Container}
+          className="d3-container"
+          width={800}
+          height={600}
+          ref={d3Container}
+          style={{ border: '1px solid black' }}
       ></svg>
     </motion.div>
   );
@@ -326,6 +333,12 @@ function generateGeometry(type, complexity, symmetry, dimension, morphFactor) {
       nextGeometry.vertices,
       morphFactor
     );
+  }
+
+  // checks
+  console.log('Generated Geometry:', geometry);
+  if (!geometry.vertices || geometry.vertices.length === 0) {
+    console.error('No vertices generated');
   }
 
   return geometry;
