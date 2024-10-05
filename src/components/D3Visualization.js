@@ -118,8 +118,8 @@ const D3Visualization = () => {
     svg.call(
       d3
         .drag()
-        .on('start', () => {
-          d3.event.sourceEvent.stopPropagation(); // Prevent drag from triggering zoom
+        .on('start', (event) => {
+          event.sourceEvent.stopPropagation(); // Prevent drag from triggering zoom
         })
         .on('drag', (event) => {
           rotateY += event.dx * 0.3; // Adjust sensitivity of rotation
@@ -187,6 +187,8 @@ const D3Visualization = () => {
     morphFactor,
     colorScheme,
   ]);
+  
+  
   
   
   
