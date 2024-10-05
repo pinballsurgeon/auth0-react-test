@@ -35,24 +35,24 @@ const D3Visualization = () => {
       console.error('SVG container reference is still null');
       return; // Exit if container reference is not ready
     }
-  
+
     // Clear previous SVG content
     const svg = d3.select(d3Container.current);
     svg.selectAll('*').remove();
-  
+
     // Set up responsive SVG attributes
     const containerWidth = d3Container.current.clientWidth;
     const containerHeight = d3Container.current.clientHeight;
-  
+
     svg
       .attr('width', '100%')
       .attr('height', '100%')
       .attr('viewBox', `0 0 ${containerWidth} ${containerHeight}`)
       .attr('preserveAspectRatio', 'xMidYMid meet');
-  
+
     // Create group for geometry and center it
     const g = svg.append('g');
-  
+
     // Generate geometry based on parameters
     const { vertices, edges, faces } = generateGeometry(
       geometryType,
@@ -61,35 +61,35 @@ const D3Visualization = () => {
       dimension,
       morphFactor
     );
-  
+
     if (!vertices || vertices.length === 0) {
       console.error('No vertices generated, unable to render geometry');
       return; // Exit early if no geometry is generated
     }
-  
+
     // Calculate bounding box of vertices to determine scale and translation
     const xExtent = d3.extent(vertices, (d) => d[0]);
     const yExtent = d3.extent(vertices, (d) => d[1]);
     const boundingWidth = Math.abs(xExtent[1] - xExtent[0]);
     const boundingHeight = Math.abs(yExtent[1] - yExtent[0]);
-  
+
     // Set scale to fit geometry within SVG with padding
     const scale = Math.min(
       (containerWidth / boundingWidth) * 0.8,
       (containerHeight / boundingHeight) * 0.8
     );
-  
+
     // Set projection dynamically based on geometry size
     const projection = d3.geoOrthographic()
       .scale(scale)
       .translate([containerWidth / 2, containerHeight / 2])
       .clipAngle(90);
-  
+
     const path = d3.geoPath().projection(projection);
-  
+
     // Color scale
     const color = d3[colorScheme] || d3.schemeCategory10;
-  
+
     // Render faces
     g.selectAll('.face')
       .data(faces)
@@ -106,7 +106,7 @@ const D3Visualization = () => {
       .attr('stroke', '#000')
       .attr('stroke-width', 0.5)
       .attr('opacity', 0.8);
-  
+
     // Render edges
     g.selectAll('.edge')
       .data(edges)
@@ -122,11 +122,11 @@ const D3Visualization = () => {
       .attr('fill', 'none')
       .attr('stroke', '#000')
       .attr('stroke-width', 1);
-  
+
     // Rotation state
     let rotateX = 0;
     let rotateY = 0;
-  
+
     // Manual rotation via drag behavior
     svg.call(
       d3
@@ -151,7 +151,7 @@ const D3Visualization = () => {
           );
         })
     );
-  
+
     // Auto-rotation loop (optional, remove if only manual rotation is desired)
     const timer = d3.timer((elapsed) => {
       if (animationSpeed > 0) {
@@ -170,7 +170,7 @@ const D3Visualization = () => {
         );
       }
     });
-  
+
     // Zoom behavior
     svg.call(
       d3
@@ -183,22 +183,23 @@ const D3Visualization = () => {
           );
         })
     );
-  
+
     // Resize handling
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
       const newWidth = d3Container.current.clientWidth;
       const newHeight = d3Container.current.clientHeight;
       svg.attr('viewBox', `0 0 ${newWidth} ${newHeight}`);
       projection.translate([newWidth / 2, newHeight / 2]);
-    });
-  
+    };
+    window.addEventListener('resize', handleResize);
+
     // Clean up on component unmount
     return () => {
       timer.stop(); // Stop auto-rotation timer
       svg.on('.zoom', null); // Remove zoom events
       svg.on('.drag', null); // Remove drag events
       svg.selectAll('*').remove(); // Clear SVG content
-      window.removeEventListener('resize', () => {}); // Clean up resize event listener
+      window.removeEventListener('resize', handleResize); // Clean up resize event listener
     };
   }, [
     geometryType,
@@ -209,7 +210,7 @@ const D3Visualization = () => {
     morphFactor,
     colorScheme,
   ]);
-  
+
   return (
     <motion.div
       className="d3-visualization-container"
@@ -478,8 +479,7 @@ function interpolateVertices(vertices1, vertices2, t) {
 function extractEdges(faces) {
   const edges = new Set();
   faces.forEach((face) => {
-    for (let i = 0; i < face.length; i++)
-  {
+    for (let i = 0; i < face.length; i++) {
       const a = face[i];
       const b = face[(i + 1) % face.length];
       edges.add([Math.min(a, b), Math.max(a, b)].toString());
