@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { generateGeometry } from './geometry';
+import { generateGeometry } from './geometries/GeometryFactory';
 import Renderer from './Renderer';
 import Controls from './Controls';
 
@@ -15,7 +15,7 @@ const D3Visualization = () => {
   const [rotateZ, setRotateZ] = useState(0);
 
   // Generate geometry based on current parameters
-  const geometry = generateGeometry(geometryType, complexity);
+  const geometry = generateGeometry(geometryType, { complexity });
 
   return (
     <motion.div

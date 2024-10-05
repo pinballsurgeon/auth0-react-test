@@ -1,73 +1,76 @@
 // Controls.js
 
 import React from 'react';
+import { FormControl, InputLabel, Select, MenuItem, Slider, Box } from '@material-ui/core';
 
 const Controls = ({ parameters, onParameterChange }) => {
   const { geometryType, complexity, rotateX, rotateY, rotateZ } = parameters;
   const { setGeometryType, setComplexity, setRotateX, setRotateY, setRotateZ } = onParameterChange;
 
   return (
-    <div className="control-panel">
-      <div className="control-group">
-        <label htmlFor="geometry-type">Geometry Type:</label>
-        <select
-          id="geometry-type"
+    <Box className="control-panel" p={2}>
+      <FormControl variant="outlined" fullWidth margin="normal">
+        <InputLabel id="geometry-type-label">Geometry Type</InputLabel>
+        <Select
+          labelId="geometry-type-label"
           value={geometryType}
           onChange={(e) => setGeometryType(e.target.value)}
+          label="Geometry Type"
         >
-          <option value="Platonic Solids">Platonic Solids</option>
+          <MenuItem value="Platonic Solids">Platonic Solids</MenuItem>
+          <MenuItem value="Archimedean Solids">Archimedean Solids</MenuItem>
           {/* More options can be added here as new geometries are implemented */}
-        </select>
-      </div>
+        </Select>
+      </FormControl>
 
-      <div className="control-group">
-        <label htmlFor="complexity">Complexity: {complexity}</label>
-        <input
-          id="complexity"
-          type="range"
-          min="3"
-          max="20"
+      <FormControl fullWidth margin="normal">
+        <InputLabel shrink>Complexity</InputLabel>
+        <Slider
           value={complexity}
-          onChange={(e) => setComplexity(parseInt(e.target.value, 10))}
+          onChange={(e, val) => setComplexity(val)}
+          min={3}
+          max={20}
+          valueLabelDisplay="auto"
+          aria-labelledby="complexity-slider"
         />
-      </div>
+      </FormControl>
 
-      <div className="control-group">
-        <label htmlFor="rotate-x">Rotate X: {rotateX}</label>
-        <input
-          id="rotate-x"
-          type="range"
-          min="0"
-          max="360"
+      <FormControl fullWidth margin="normal">
+        <InputLabel shrink>Rotate X</InputLabel>
+        <Slider
           value={rotateX}
-          onChange={(e) => setRotateX(parseInt(e.target.value, 10))}
+          onChange={(e, val) => setRotateX(val)}
+          min={0}
+          max={360}
+          valueLabelDisplay="auto"
+          aria-labelledby="rotate-x-slider"
         />
-      </div>
+      </FormControl>
 
-      <div className="control-group">
-        <label htmlFor="rotate-y">Rotate Y: {rotateY}</label>
-        <input
-          id="rotate-y"
-          type="range"
-          min="0"
-          max="360"
+      <FormControl fullWidth margin="normal">
+        <InputLabel shrink>Rotate Y</InputLabel>
+        <Slider
           value={rotateY}
-          onChange={(e) => setRotateY(parseInt(e.target.value, 10))}
+          onChange={(e, val) => setRotateY(val)}
+          min={0}
+          max={360}
+          valueLabelDisplay="auto"
+          aria-labelledby="rotate-y-slider"
         />
-      </div>
+      </FormControl>
 
-      <div className="control-group">
-        <label htmlFor="rotate-z">Rotate Z: {rotateZ}</label>
-        <input
-          id="rotate-z"
-          type="range"
-          min="0"
-          max="360"
+      <FormControl fullWidth margin="normal">
+        <InputLabel shrink>Rotate Z</InputLabel>
+        <Slider
           value={rotateZ}
-          onChange={(e) => setRotateZ(parseInt(e.target.value, 10))}
+          onChange={(e, val) => setRotateZ(val)}
+          min={0}
+          max={360}
+          valueLabelDisplay="auto"
+          aria-labelledby="rotate-z-slider"
         />
-      </div>
-    </div>
+      </FormControl>
+    </Box>
   );
 };
 
