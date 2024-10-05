@@ -37,17 +37,16 @@ const D3Visualization = () => {
   }
 
   useEffect(() => {
-    // Check if the SVG container reference is available
     if (!d3Container.current) {
       console.error('SVG container reference is still null');
-      return; // Exit early if reference is not available
+      return; // Exit if container reference is not ready
     }
   
     // Clear previous SVG content
     const svg = d3.select(d3Container.current);
     svg.selectAll('*').remove();
   
-    // Set up the SVG canvas group
+    // Set up the SVG canvas
     const g = svg
       .append('g')
       .attr('transform', `translate(${width / 2}, ${height / 2})`);
@@ -111,64 +110,53 @@ const D3Visualization = () => {
       .attr('stroke', '#000')
       .attr('stroke-width', 1);
   
-    // Rotation variables
+    // Rotation state
     let rotateX = 0;
     let rotateY = 0;
   
-    // Animation loop for auto-rotation
-    const timer = d3.timer((elapsed) => {
-      rotateY = (rotateY + animationSpeed) % 360;
-      projection.rotate([rotateY, rotateX]);
-      g.selectAll('path').attr('d', (d) => {
-        if (d.type === 'Polygon') {
-          return path({
-            type: 'Polygon',
-            coordinates: [d.coordinates[0]],
-          });
-        } else if (d.type === 'LineString') {
-          return path({
-            type: 'LineString',
-            coordinates: d.coordinates,
-          });
-        }
-      });
-    });
-  
-    // Drag behavior for manual rotation
+    // Manual rotation via drag behavior
     svg.call(
       d3
         .drag()
-        .on('start', (event) => {
-          timer.stop(); // Stop auto-rotation when dragging starts
-          const lastX = event.x;
-          const lastY = event.y;
-  
-          svg.on('drag', (event) => {
-            const dx = event.x - lastX;
-            const dy = event.y - lastY;
-            rotateX += dy * 0.5;
-            rotateY += dx * 0.5;
-            projection.rotate([rotateY, rotateX]);
-            g.selectAll('path').attr('d', (d) => {
-              if (d.type === 'Polygon') {
-                return path({
-                  type: 'Polygon',
-                  coordinates: [d.coordinates[0]],
-                });
-              } else if (d.type === 'LineString') {
-                return path({
-                  type: 'LineString',
-                  coordinates: d.coordinates,
-                });
-              }
-            });
-          });
+        .on('start', () => {
+          d3.event.sourceEvent.stopPropagation(); // Prevent drag from triggering zoom
         })
-        .on('end', () => {
-          svg.on('drag', null);
-          timer.restart(); // Restart auto-rotation after dragging ends
+        .on('drag', (event) => {
+          rotateY += event.dx * 0.3; // Adjust sensitivity of rotation
+          rotateX -= event.dy * 0.3;
+          projection.rotate([rotateY, rotateX]);
+          g.selectAll('path').attr('d', (d) =>
+            d.type === 'Polygon'
+              ? path({
+                  type: 'Polygon',
+                  coordinates: [d.map((i) => vertices[i])],
+                })
+              : path({
+                  type: 'LineString',
+                  coordinates: d.map((i) => vertices[i]),
+                })
+          );
         })
     );
+  
+    // Auto-rotation loop (optional, remove if only manual rotation is desired)
+    const timer = d3.timer((elapsed) => {
+      if (animationSpeed > 0) {
+        rotateY = (rotateY + animationSpeed * 0.02) % 360; // Adjust the speed scale
+        projection.rotate([rotateY, rotateX]);
+        g.selectAll('path').attr('d', (d) =>
+          d.type === 'Polygon'
+            ? path({
+                type: 'Polygon',
+                coordinates: [d.map((i) => vertices[i])],
+              })
+            : path({
+                type: 'LineString',
+                coordinates: d.map((i) => vertices[i]),
+              })
+        );
+      }
+    });
   
     // Zoom behavior
     svg.call(
@@ -183,15 +171,14 @@ const D3Visualization = () => {
         })
     );
   
-    // Clean up on component unmount to prevent memory leaks
+    // Clean up on component unmount
     return () => {
-      timer.stop(); // Stop the animation timer
+      timer.stop(); // Stop auto-rotation timer
       svg.on('.zoom', null); // Remove zoom events
       svg.on('.drag', null); // Remove drag events
       svg.selectAll('*').remove(); // Clear SVG content
     };
   }, [
-    d3Container.current,
     geometryType,
     complexity,
     symmetry,
@@ -200,6 +187,8 @@ const D3Visualization = () => {
     morphFactor,
     colorScheme,
   ]);
+  
+  
   
 
   return (
