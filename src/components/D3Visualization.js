@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { generateGeometry } from '../geometries/GeometryFactory';
+import { generateGeometry } from '.\geometries\GeometryFactory';
 import Renderer from './Renderer';
 import Controls from './Controls';
 
