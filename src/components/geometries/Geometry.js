@@ -1,5 +1,8 @@
 // Geometry.js
 
+import { generatePlatonicSolid } from './PlatonicSolids';
+import { generateArchimedeanSolid } from './ArchimedeanSolids';
+
 export class Geometry {
   constructor(vertices, edges, faces) {
     this.vertices = vertices;
@@ -7,11 +10,6 @@ export class Geometry {
     this.faces = faces;
   }
 }
-
-// Essential geometry generation functions for early end-to-end demonstration
-
-import { generatePlatonicSolid } from './PlatonicSolids';
-import { generateArchimedeanSolid } from './ArchimedeanSolids';
 
 export function generateGeometry(type, complexity) {
   switch (type) {
