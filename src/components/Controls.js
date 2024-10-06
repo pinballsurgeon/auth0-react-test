@@ -1,7 +1,9 @@
 // Controls.js
 
 import React from 'react';
-import { FormControl, InputLabel, Select, MenuItem, Slider, Box } from '@material-ui/core';
+// import { FormControl, InputLabel, Select, MenuItem, Slider, Box } from '@material-ui/core';
+import { FormControl, InputLabel, Select, MenuItem, Slider, Box } from '@mui/material';
+
 
 const Controls = ({ parameters, onParameterChange }) => {
   const { geometryType, complexity, rotateX, rotateY, rotateZ } = parameters;
