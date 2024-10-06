@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { generateGeometry } from './geometries/geometryFactory';
-import Renderer from './geometries/Renderer';
-import Controls from './geometries/Controls';
+import { generateGeometry } from './geometryFactory';
+import Renderer from './Renderer';
+import Controls from './Controls';
 
 const D3Visualization = () => {
   // State variables for geometry parameters
