@@ -94,12 +94,3 @@ function generateIcosahedron() {
   // Placeholder: Implement the icosahedron geometry generation logic
   throw new Error('Icosahedron generation not yet implemented');
 }
-
-// Export Geometry class for usage in the GeometryFactory
-export class Geometry {
-  constructor(vertices, edges, faces) {
-    this.vertices = vertices;
-    this.edges = edges;
-    this.faces = faces;
-  }
-}
