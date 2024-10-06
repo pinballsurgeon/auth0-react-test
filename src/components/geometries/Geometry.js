@@ -1,4 +1,4 @@
-// geometry.js
+// .components/geometries/Geometry.js
 
 // Essential geometry generation functions for early end-to-end demonstration
 
