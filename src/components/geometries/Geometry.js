@@ -26,7 +26,7 @@ export function generateGeometry(type, complexity) {
 }
 
 // Utility function to extract edges from faces
-function extractEdges(faces) {
+export function extractEdges(faces) {
   const edges = new Set();
   faces.forEach((face) => {
     for (let i = 0; i < face.length; i++) {

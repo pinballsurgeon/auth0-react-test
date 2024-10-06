@@ -1,6 +1,6 @@
 // /components/geometries/PlatonicSolids.js
 
-import Geometry from './Geometry';
+import { Geometry } from './Geometry';
 
 export function generatePlatonicSolid({ complexity }) {
   switch (complexity) {
