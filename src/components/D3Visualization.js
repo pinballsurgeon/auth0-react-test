@@ -13,7 +13,16 @@ const D3Visualization = () => {
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
   const [rotateZ, setRotateZ] = useState(0);
-  const [preset, setPreset] = useState('0° X Rotation (Square)');
+  const [preset, setPreset] = useState('');
+  const [scaleX, setScaleX] = useState(1);
+  const [scaleY, setScaleY] = useState(1);
+  const [scaleZ, setScaleZ] = useState(1);
+  const [shearXY, setShearXY] = useState(0);
+  const [shearXZ, setShearXZ] = useState(0);
+  const [shearYX, setShearYX] = useState(0);
+  const [shearYZ, setShearYZ] = useState(0);
+  const [shearZX, setShearZX] = useState(0);
+  const [shearZY, setShearZY] = useState(0);
 
   // Generate geometry based on current parameters
   const geometry = generateGeometry(geometryType, { complexity });
@@ -27,7 +36,23 @@ const D3Visualization = () => {
     >
       <div className="controls">
         <Controls
-          parameters={{ geometryType, complexity, rotateX, rotateY, rotateZ, preset }}
+          parameters={{
+            geometryType,
+            complexity,
+            rotateX,
+            rotateY,
+            rotateZ,
+            preset,
+            scaleX,
+            scaleY,
+            scaleZ,
+            shearXY,
+            shearXZ,
+            shearYX,
+            shearYZ,
+            shearZX,
+            shearZY,
+          }}
           onParameterChange={{
             setGeometryType,
             setComplexity,
@@ -35,11 +60,34 @@ const D3Visualization = () => {
             setRotateY,
             setRotateZ,
             setPreset,
+            setScaleX,
+            setScaleY,
+            setScaleZ,
+            setShearXY,
+            setShearXZ,
+            setShearYX,
+            setShearYZ,
+            setShearZX,
+            setShearZY,
           }}
         />
       </div>
       <div className="renderer">
-        <Renderer geometry={geometry} rotateX={rotateX} rotateY={rotateY} rotateZ={rotateZ} />
+        <Renderer
+          geometry={geometry}
+          rotateX={rotateX}
+          rotateY={rotateY}
+          rotateZ={rotateZ}
+          scaleX={scaleX}
+          scaleY={scaleY}
+          scaleZ={scaleZ}
+          shearXY={shearXY}
+          shearXZ={shearXZ}
+          shearYX={shearYX}
+          shearYZ={shearYZ}
+          shearZX={shearZX}
+          shearZY={shearZY}
+        />
       </div>
     </motion.div>
   );
