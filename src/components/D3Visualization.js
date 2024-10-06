@@ -27,6 +27,13 @@ const D3Visualization = () => {
   // Generate geometry based on current parameters
   const geometry = generateGeometry(geometryType, { complexity });
 
+  // Rotation change handler for mouse-based rotation updates
+  const handleRotationChange = (newRotateX, newRotateY, newRotateZ) => {
+    setRotateX(newRotateX);
+    setRotateY(newRotateY);
+    setRotateZ(newRotateZ);
+  };
+
   return (
     <motion.div
       className="d3-visualization-container"
@@ -87,6 +94,7 @@ const D3Visualization = () => {
           shearYZ={shearYZ}
           shearZX={shearZX}
           shearZY={shearZY}
+          onRotationChange={handleRotationChange}
         />
       </div>
     </motion.div>
