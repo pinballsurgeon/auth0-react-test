@@ -1,6 +1,9 @@
 // transformations.js
 
-// Essential 3D transformations for early end-to-end demonstration
+function roundToPrecision(value, precision = 6) {
+  const factor = Math.pow(10, precision);
+  return Math.round(value * factor) / factor;
+}
 
 export function rotatePoint(point, rotateX, rotateY, rotateZ) {
   let [x, y, z] = point;
@@ -20,12 +23,16 @@ export function rotatePoint(point, rotateX, rotateY, rotateZ) {
   const sinZ = Math.sin((rotateZ * Math.PI) / 180);
   [x, y] = [x * cosZ - y * sinZ, x * sinZ + y * cosZ];
 
-  return [x, y, z];
+  return [roundToPrecision(x), roundToPrecision(y), roundToPrecision(z)];
 }
 
 export function scalePoint(point, scaleX, scaleY, scaleZ) {
   const [x, y, z] = point;
-  return [x * scaleX, y * scaleY, z * scaleZ];
+  return [
+    roundToPrecision(x * scaleX),
+    roundToPrecision(y * scaleY),
+    roundToPrecision(z * scaleZ),
+  ];
 }
 
 export function shearPoint(point, shearXY, shearXZ, shearYX, shearYZ, shearZX, shearZY) {
@@ -33,7 +40,9 @@ export function shearPoint(point, shearXY, shearXZ, shearYX, shearYZ, shearZX, s
   x = x + shearXY * y + shearXZ * z;
   y = y + shearYX * x + shearYZ * z;
   z = z + shearZX * x + shearZY * y;
-  return [x, y, z];
+  return [
+    roundToPrecision(x),
+    roundToPrecision(y),
+    roundToPrecision(z),
+  ];
 }
-
-// Future iterations will add more transformations and improve modularity
