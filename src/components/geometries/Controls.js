@@ -13,7 +13,7 @@ import {
   Grid 
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
-import { rotationPresets } from './geometries/RotationPresets';
+import { rotationPresets } from './RotationPresets';
 
 const Controls = ({ parameters, onParameterChange }) => {
   const { 
