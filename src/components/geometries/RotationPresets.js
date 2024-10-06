@@ -16,8 +16,8 @@ export const rotationPresets = {
       },
       { 
         name: "45° Y Rotation (Isometric)", 
-        rotateX: 45, 
-        rotateY: 35.264, // Approx arctan(1/sqrt(2))
+        rotateX: 35.264, // Approx arctan(1/sqrt(2))
+        rotateY: 45, 
         rotateZ: 0,
         scale: { x: 1, y: 1, z: 1 },
         shear: { xy: 0, xz: 0, yx: 0, yz: 0, zx: 0, zy: 0 },
