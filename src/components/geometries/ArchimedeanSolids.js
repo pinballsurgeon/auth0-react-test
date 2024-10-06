@@ -1,3 +1,5 @@
+// /components/geometries/ArchimedeanSolids.js
+
 import Geometry from './Geometry';
 
 export function generateArchimedeanSolid(type) {

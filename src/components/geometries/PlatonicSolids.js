@@ -1,4 +1,4 @@
-// PlatonicSolids.js
+// /components/geometries/PlatonicSolids.js
 
 import Geometry from './Geometry';
 
