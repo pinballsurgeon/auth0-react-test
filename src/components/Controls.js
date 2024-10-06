@@ -1,16 +1,26 @@
 // Controls.js
 
 import React from 'react';
-// import { FormControl, InputLabel, Select, MenuItem, Slider, Box } from '@material-ui/core';
 import { FormControl, InputLabel, Select, MenuItem, Slider, Box } from '@mui/material';
-
+import { rotationPresets } from './geometries/RotationPresets';
 
 const Controls = ({ parameters, onParameterChange }) => {
-  const { geometryType, complexity, rotateX, rotateY, rotateZ } = parameters;
-  const { setGeometryType, setComplexity, setRotateX, setRotateY, setRotateZ } = onParameterChange;
+  const { geometryType, complexity, rotateX, rotateY, rotateZ, preset } = parameters;
+  const { setGeometryType, setComplexity, setRotateX, setRotateY, setRotateZ, setPreset } = onParameterChange;
+
+  const handlePresetChange = (event) => {
+    const selectedPreset = rotationPresets.find((p) => p.name === event.target.value);
+    setPreset(event.target.value);
+    if (selectedPreset) {
+      setRotateX(selectedPreset.rotateX);
+      setRotateY(selectedPreset.rotateY);
+      setRotateZ(selectedPreset.rotateZ);
+    }
+  };
 
   return (
     <Box className="control-panel" p={2}>
+      {/* Geometry Type Dropdown */}
       <FormControl variant="outlined" fullWidth margin="normal">
         <InputLabel id="geometry-type-label">Geometry Type</InputLabel>
         <Select
@@ -21,10 +31,28 @@ const Controls = ({ parameters, onParameterChange }) => {
         >
           <MenuItem value="Platonic Solids">Platonic Solids</MenuItem>
           <MenuItem value="Archimedean Solids">Archimedean Solids</MenuItem>
-          {/* More options can be added here as new geometries are implemented */}
+          {/* Add more geometry types as needed */}
         </Select>
       </FormControl>
 
+      {/* Rotation Preset Dropdown */}
+      <FormControl variant="outlined" fullWidth margin="normal">
+        <InputLabel id="preset-label">Rotation Preset</InputLabel>
+        <Select
+          labelId="preset-label"
+          value={preset}
+          onChange={handlePresetChange}
+          label="Rotation Preset"
+        >
+          {rotationPresets.map((preset) => (
+            <MenuItem key={preset.name} value={preset.name}>
+              {preset.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Complexity Slider */}
       <FormControl fullWidth margin="normal">
         <InputLabel shrink>Complexity</InputLabel>
         <Slider
@@ -37,6 +65,7 @@ const Controls = ({ parameters, onParameterChange }) => {
         />
       </FormControl>
 
+      {/* Existing Sliders for Manual Rotation */}
       <FormControl fullWidth margin="normal">
         <InputLabel shrink>Rotate X</InputLabel>
         <Slider

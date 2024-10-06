@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { generateGeometry } from './geometries/geometryFactory';
+import { generateGeometry } from './geometries/GeometryFactory';
 import Renderer from './Renderer';
 import Controls from './Controls';
 
@@ -13,6 +13,7 @@ const D3Visualization = () => {
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
   const [rotateZ, setRotateZ] = useState(0);
+  const [preset, setPreset] = useState('0° X Rotation (Square)');
 
   // Generate geometry based on current parameters
   const geometry = generateGeometry(geometryType, { complexity });
@@ -26,13 +27,14 @@ const D3Visualization = () => {
     >
       <div className="controls">
         <Controls
-          parameters={{ geometryType, complexity, rotateX, rotateY, rotateZ }}
+          parameters={{ geometryType, complexity, rotateX, rotateY, rotateZ, preset }}
           onParameterChange={{
             setGeometryType,
             setComplexity,
             setRotateX,
             setRotateY,
             setRotateZ,
+            setPreset,
           }}
         />
       </div>
