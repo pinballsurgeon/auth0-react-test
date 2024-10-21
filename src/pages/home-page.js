@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageLayout } from "../components/page-layout";
 import D3Visualization from '../components/geometries/D3Visualization';
-import { Auth0Features } from "../components/auth0-features";
+// import { Auth0Features } from "../components/auth0-features";
 
 export const HomePage = () => {
   return (
