@@ -10,7 +10,7 @@ export const HomePage = () => {
         <h1>3D Spinning Cube Visualization</h1>
         <D3Visualization />
       </div>
-      <Auth0Features />
+      {/* <Auth0Features /> */}
     </PageLayout>
   );
 };
