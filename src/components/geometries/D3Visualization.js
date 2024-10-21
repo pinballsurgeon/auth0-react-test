@@ -34,52 +34,15 @@ const D3Visualization = () => {
     setRotateZ(newRotateZ);
   };
 
+  
   return (
-    <motion.div
-      className="d3-visualization-container"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="controls">
-        <Controls
-          parameters={{
-            geometryType,
-            complexity,
-            rotateX,
-            rotateY,
-            rotateZ,
-            preset,
-            scaleX,
-            scaleY,
-            scaleZ,
-            shearXY,
-            shearXZ,
-            shearYX,
-            shearYZ,
-            shearZX,
-            shearZY,
-          }}
-          onParameterChange={{
-            setGeometryType,
-            setComplexity,
-            setRotateX,
-            setRotateY,
-            setRotateZ,
-            setPreset,
-            setScaleX,
-            setScaleY,
-            setScaleZ,
-            setShearXY,
-            setShearXZ,
-            setShearYX,
-            setShearYZ,
-            setShearZX,
-            setShearZY,
-          }}
-        />
-      </div>
-      <div className="renderer">
+    <div className="relative w-full h-screen">
+      <motion.div
+        className="w-full h-full"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         <Renderer
           geometry={geometry}
           rotateX={rotateX}
@@ -96,8 +59,44 @@ const D3Visualization = () => {
           shearZY={shearZY}
           onRotationChange={handleRotationChange}
         />
-      </div>
-    </motion.div>
+      </motion.div>
+      <CollapsibleSidebar
+        parameters={{
+          geometryType,
+          complexity,
+          rotateX,
+          rotateY,
+          rotateZ,
+          preset,
+          scaleX,
+          scaleY,
+          scaleZ,
+          shearXY,
+          shearXZ,
+          shearYX,
+          shearYZ,
+          shearZX,
+          shearZY,
+        }}
+        onParameterChange={{
+          setGeometryType,
+          setComplexity,
+          setRotateX,
+          setRotateY,
+          setRotateZ,
+          setPreset,
+          setScaleX,
+          setScaleY,
+          setScaleZ,
+          setShearXY,
+          setShearXZ,
+          setShearYX,
+          setShearYZ,
+          setShearZX,
+          setShearZY,
+        }}
+      />
+    </div>
   );
 };
 
