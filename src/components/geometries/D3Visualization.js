@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { generateGeometry } from './geometryFactory';
 import Renderer from './Renderer';
-import Controls from './Controls';
+import CollapsibleSidebar from './CollapsibleSidebar';
 
 const D3Visualization = () => {
   // State variables for geometry parameters
