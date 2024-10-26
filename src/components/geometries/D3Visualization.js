@@ -36,7 +36,7 @@ const D3Visualization = () => {
 
   
   return (
-    <div className="relative w-full h-screen">
+    <div className="relative w-full h-screen min-h-[800px] max-h-[90vh]">
       <motion.div
         className="w-full h-full"
         initial={{ opacity: 0 }}

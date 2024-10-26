@@ -28,7 +28,7 @@ const CollapsibleSidebar = ({ parameters, onParameterChange }) => {
 
   return (
     <motion.div
-      className="fixed top-0 right-0 h-full bg-white shadow-lg"
+      className="fixed top-0 right-0 h-full bg-white shadow-lg z-10"
       initial={{ width: '60px' }}
       animate={{ width: isOpen ? '300px' : '60px' }}
       transition={{ duration: 0.3 }}

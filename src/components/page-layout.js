@@ -8,7 +8,6 @@ export const PageLayout = ({ children }) => {
       <NavBar />
       <MobileNavBar />
       <div className="page-layout__content">{children}</div>
-      {/* <PageFooter /> */}
     </div>
   );
 };

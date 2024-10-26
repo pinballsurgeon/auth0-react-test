@@ -41,11 +41,11 @@ const Renderer = ({ geometry, rotateX, rotateY, rotateZ, scaleX, scaleY, scaleZ,
     const boundingWidth = xExtent[1] - xExtent[0];
     const boundingHeight = yExtent[1] - yExtent[0];
 
-    const padding = 40;
+    const padding = Math.min(containerWidth, containerHeight) * 0.1; // Dynamic padding
     const scale = Math.min(
       (containerWidth - 2 * padding) / boundingWidth,
       (containerHeight - 2 * padding) / boundingHeight
-    );
+    ) * 0.9; // 90% of available space
 
     const finalVertices = transformedVertices.map(([x, y]) => [
       (x - (xExtent[0] + xExtent[1]) / 2) * scale + containerWidth / 2,
@@ -104,7 +104,14 @@ const Renderer = ({ geometry, rotateX, rotateY, rotateZ, scaleX, scaleY, scaleZ,
   return (
     <svg
       ref={d3Container}
-      style={{ border: '1px solid black', width: '100%', height: '100%' }}
+      style={{
+        border: '1px solid black',
+        width: '100%',
+        height: '100%',
+        minHeight: '800px',  // Ensures minimum height
+        display: 'block',    // Removes any extra spacing
+        margin: 'auto'       // Centers the visualization
+      }}
     ></svg>
   );
 };
