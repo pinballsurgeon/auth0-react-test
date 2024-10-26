@@ -3,20 +3,25 @@
 import { Geometry } from './Geometry';
 
 export function generatePlatonicSolid({ complexity }) {
-  switch (complexity) {
-    case 4:
-      return generateTetrahedron();
-    case 6:
-      return generateCube();
-    case 8:
-      return generateOctahedron();
-    case 12:
-      return generateDodecahedron();
-    case 20:
-      return generateIcosahedron();
-    default:
-      throw new Error(`Unsupported complexity for Platonic Solid: ${complexity}`);
-  }
+  // Base cases for standard Platonic solids
+  if (complexity === 4) return generateTetrahedron();
+  if (complexity === 6) return generateCube();
+  if (complexity === 8) return generateOctahedron();
+  if (complexity === 12) return generateDodecahedron();
+  if (complexity === 20) return generateIcosahedron();
+  
+  // Handle intermediate complexities through interpolation
+  const lowerBound = findNearestLowerPlatonic(complexity);
+  const upperBound = findNearestUpperPlatonic(complexity);
+  
+  const lowerGeometry = generatePlatonicSolid({ complexity: lowerBound });
+  const upperGeometry = generatePlatonicSolid({ complexity: upperBound });
+  
+  return interpolateGeometries(
+    lowerGeometry, 
+    upperGeometry, 
+    (complexity - lowerBound) / (upperBound - lowerBound)
+  );
 }
 
 function generateTetrahedron() {
