@@ -15,50 +15,65 @@ export class Geometry {
   }
   
   validateVertices(vertices) {
-    // Ensure vertices are properly formatted and normalized
     return vertices.map(v => {
-      if (v.length !== 3) throw new Error('Vertices must be 3D points');
+      if (!Array.isArray(v) || v.length !== 3) {
+        throw new Error('Vertices must be 3D points');
+      }
       return v.map(coord => Number(coord));
     });
   }
   
   validateEdges(edges) {
-    // Validate edge indices and ensure they reference valid vertices
     return edges.filter(edge => {
-      return edge.length === 2 &&
-             edge[0] >= 0 && edge[0] < this.vertices.length &&
-             edge[1] >= 0 && edge[1] < this.vertices.length;
+      if (!Array.isArray(edge) || edge.length !== 2) {
+        return false;
+      }
+      const [a, b] = edge;
+      return a >= 0 && a < this.vertices.length && 
+             b >= 0 && b < this.vertices.length;
     });
   }
   
   validateFaces(faces) {
-    // Validate face indices and ensure proper winding order
     return faces.map(face => {
-      if (face.length < 3) throw new Error('Faces must have at least 3 vertices');
-      return this.ensureProperWinding(face);
+      if (!Array.isArray(face) || face.length < 3) {
+        throw new Error('Faces must have at least 3 vertices');
+      }
+      return face.map(idx => {
+        if (idx < 0 || idx >= this.vertices.length) {
+          throw new Error('Face references invalid vertex');
+        }
+        return idx;
+      });
     });
   }
   
-  // Lazy-loaded computed properties
+  computeBoundingBox() {
+    if (this.vertices.length === 0) {
+      return { min: [0, 0, 0], max: [0, 0, 0] };
+    }
+    
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    
+    this.vertices.forEach(vertex => {
+      for (let i = 0; i < 3; i++) {
+        min[i] = Math.min(min[i], vertex[i]);
+        max[i] = Math.max(max[i], vertex[i]);
+      }
+    });
+    
+    return { min, max };
+  }
+  
   get boundingBox() {
     if (!this._boundingBox) {
       this._boundingBox = this.computeBoundingBox();
     }
     return this._boundingBox;
   }
-  
-  get vertexNormals() {
-    if (!this._vertexNormals) {
-      this._vertexNormals = this.computeVertexNormals();
-    }
-    return this._vertexNormals;
-  }
-  
-  // Method to support smooth transitions between complexities
-  interpolateToward(otherGeometry, t) {
-    return interpolateGeometries(this, otherGeometry, t);
-  }
 }
+
 
 export function generateGeometry(type, complexity) {
   switch (type) {

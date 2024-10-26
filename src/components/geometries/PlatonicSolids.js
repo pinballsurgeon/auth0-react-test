@@ -1,48 +1,53 @@
-// /components/geometries/PlatonicSolids.js
 
+// PlatonicSolids.js
 import { Geometry } from './Geometry';
 
-export function generatePlatonicSolid({ complexity }) {
-  // Base cases for standard Platonic solids
-  if (complexity === 4) return generateTetrahedron();
-  if (complexity === 6) return generateCube();
-  if (complexity === 8) return generateOctahedron();
-  if (complexity === 12) return generateDodecahedron();
-  if (complexity === 20) return generateIcosahedron();
+export function generatePlatonicSolid(parameters = {}) {
+  const { complexity = 4 } = parameters;
   
-  // Handle intermediate complexities through interpolation
-  const lowerBound = findNearestLowerPlatonic(complexity);
-  const upperBound = findNearestUpperPlatonic(complexity);
-  
-  const lowerGeometry = generatePlatonicSolid({ complexity: lowerBound });
-  const upperGeometry = generatePlatonicSolid({ complexity: upperBound });
-  
-  return interpolateGeometries(
-    lowerGeometry, 
-    upperGeometry, 
-    (complexity - lowerBound) / (upperBound - lowerBound)
-  );
+  switch (complexity) {
+    case 4:
+      return generateTetrahedron();
+    case 6:
+      return generateCube();
+    case 8:
+      return generateOctahedron();
+    case 12:
+      return generateDodecahedron();
+    case 20:
+      return generateIcosahedron();
+    default:
+      // For any other complexity, return the closest valid Platonic solid
+      const validComplexities = [4, 6, 8, 12, 20];
+      const closest = validComplexities.reduce((prev, curr) => 
+        Math.abs(curr - complexity) < Math.abs(prev - complexity) ? curr : prev
+      );
+      console.warn(`Complexity ${complexity} not supported, using ${closest} instead`);
+      return generatePlatonicSolid({ complexity: closest });
+  }
 }
 
 function generateTetrahedron() {
-  return new Geometry(
-    [
-      [1, 1, 1],
-      [-1, -1, 1],
-      [-1, 1, -1],
-      [1, -1, -1],
-    ],
-    [
-      [0, 1], [0, 2], [0, 3],
-      [1, 2], [1, 3], [2, 3],
-    ],
-    [
-      [0, 1, 2],
-      [0, 1, 3],
-      [0, 2, 3],
-      [1, 2, 3],
-    ]
-  );
+  const vertices = [
+    [1, 1, 1],
+    [-1, -1, 1],
+    [-1, 1, -1],
+    [1, -1, -1]
+  ];
+  
+  const edges = [
+    [0, 1], [0, 2], [0, 3],
+    [1, 2], [1, 3], [2, 3]
+  ];
+  
+  const faces = [
+    [0, 1, 2],
+    [0, 1, 3],
+    [0, 2, 3],
+    [1, 2, 3]
+  ];
+  
+  return new Geometry(vertices, edges, faces);
 }
 
 function generateCube() {
