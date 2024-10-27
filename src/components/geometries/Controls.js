@@ -14,10 +14,12 @@ import {
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import { rotationPresets } from './RotationPresets';
+import { ARCHIMEDEAN_TYPES } from './ArchimedeanSolids';
 
 const Controls = ({ parameters, onParameterChange }) => {
   const { 
-    geometryType, 
+    geometryType,
+    archimedeanType, 
     complexity, 
     rotateX, 
     rotateY, 
@@ -35,7 +37,8 @@ const Controls = ({ parameters, onParameterChange }) => {
   } = parameters;
   
   const { 
-    setGeometryType, 
+    setGeometryType,
+    setArchimedeanType, 
     setComplexity, 
     setRotateX, 
     setRotateY, 
@@ -52,6 +55,7 @@ const Controls = ({ parameters, onParameterChange }) => {
     setShearZY
   } = onParameterChange;
 
+  
   const handlePresetChange = (event) => {
     const selectedPreset = currentPresets.find((p) => p.name === event.target.value);
     setPreset(event.target.value);
@@ -74,6 +78,7 @@ const Controls = ({ parameters, onParameterChange }) => {
   // Get presets based on selected geometry type
   const currentPresets = rotationPresets[geometryType] || [];
 
+
   return (
     <Box className="control-panel" p={2}>
       {/* Geometry Type Dropdown */}
@@ -85,15 +90,45 @@ const Controls = ({ parameters, onParameterChange }) => {
           onChange={(e) => {
             setGeometryType(e.target.value);
             setPreset(''); // Reset preset on geometry change
+            // Reset Archimedean type if switching away from Archimedean
+            if (e.target.value !== 'Archimedean Solids') {
+              setArchimedeanType(ARCHIMEDEAN_TYPES[0].name);
+            }
           }}
           label="Geometry Type"
         >
           <MenuItem value="Platonic Solids">Platonic Solids</MenuItem>
           <MenuItem value="Archimedean Solids">Archimedean Solids</MenuItem>
-          {/* Add more geometry types as needed */}
         </Select>
       </FormControl>
 
+      {/* Conditional Archimedean Type Selector */}
+      {geometryType === 'Archimedean Solids' && (
+        <FormControl variant="outlined" fullWidth margin="normal">
+          <InputLabel>Archimedean Type</InputLabel>
+          <Select
+            value={archimedeanType}
+            onChange={(e) => setArchimedeanType(e.target.value)}
+            label="Archimedean Type"
+          >
+            {ARCHIMEDEAN_TYPES.map(type => (
+              <MenuItem key={type.name} value={type.name}>
+                <Box display="flex" alignItems="center" width="100%">
+                  <div>{type.name}</div>
+                  <Tooltip 
+                    title={`${type.description}\nFaces: ${type.faces}\nVertices: ${type.vertices}`}
+                    arrow
+                  >
+                    <InfoIcon fontSize="small" sx={{ ml: 1 }} />
+                  </Tooltip>
+                </Box>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+
+      {/* Common Controls for Both Types */}
       {/* Rotation Preset Dropdown */}
       <FormControl variant="outlined" fullWidth margin="normal">
         <InputLabel id="preset-label">Rotation Preset</InputLabel>
@@ -116,22 +151,33 @@ const Controls = ({ parameters, onParameterChange }) => {
         </Select>
       </FormControl>
 
-      {/* Complexity Slider */}
-      <FormControl fullWidth margin="normal">
-        <Typography id="complexity-slider" gutterBottom>
-          Complexity
-        </Typography>
-        <Slider
-          value={complexity}
-          onChange={(e, val) => setComplexity(val)}
-          min={3}
-          max={20}
-          valueLabelDisplay="auto"
-          aria-labelledby="complexity-slider"
-        />
-      </FormControl>
+      {/* Complexity Slider - Only show for Platonic Solids */}
+      {geometryType === 'Platonic Solids' && (
+        <FormControl fullWidth margin="normal">
+          <Typography id="complexity-slider" gutterBottom>
+            Complexity
+          </Typography>
+          <Slider
+            value={complexity}
+            onChange={(e, val) => setComplexity(val)}
+            min={4}
+            max={20}
+            step={2}
+            marks={[
+              { value: 4, label: '4' },
+              { value: 6, label: '6' },
+              { value: 8, label: '8' },
+              { value: 12, label: '12' },
+              { value: 20, label: '20' }
+            ]}
+            valueLabelDisplay="auto"
+            aria-labelledby="complexity-slider"
+          />
+        </FormControl>
+      )}
 
-      {/* Rotation Sliders */}
+
+      {/* Rotation Controls */}
       <Box mt={2}>
         <Typography gutterBottom>Rotate X</Typography>
         <Slider
@@ -299,5 +345,27 @@ const Controls = ({ parameters, onParameterChange }) => {
     </Box>
   );
 };
+
+// const ArchimedeanTypeSelect = ({ value, onChange }) => {
+//   return (
+//     <FormControl variant="outlined" fullWidth margin="normal">
+//       <InputLabel>Archimedean Type</InputLabel>
+//       <Select
+//         value={value}
+//         onChange={(e) => onChange(e.target.value)}
+//         label="Archimedean Type"
+//       >
+//         {ARCHIMEDEAN_TYPES.map(type => (
+//           <MenuItem key={type.name} value={type.name}>
+//             <Tooltip title={`${type.description}\nFaces: ${type.faces}\nVertices: ${type.vertices}`}>
+//               <div>{type.name}</div>
+//             </Tooltip>
+//           </MenuItem>
+//         ))}
+//       </Select>
+//     </FormControl>
+//   );
+// };
+
 
 export default Controls;

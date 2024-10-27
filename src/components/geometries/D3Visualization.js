@@ -9,6 +9,7 @@ import CollapsibleSidebar from './CollapsibleSidebar';
 const D3Visualization = () => {
   // State variables for geometry parameters
   const [geometryType, setGeometryType] = useState('Platonic Solids');
+  const [archimedeanType, setArchimedeanType] = useState('Truncated Cube');
   const [complexity, setComplexity] = useState(4); // Tetrahedron
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
@@ -63,6 +64,7 @@ const D3Visualization = () => {
       <CollapsibleSidebar
         parameters={{
           geometryType,
+          archimedeanType,
           complexity,
           rotateX,
           rotateY,
