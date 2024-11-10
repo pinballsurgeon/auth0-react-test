@@ -57,7 +57,7 @@ import { NotFoundPage } from "./pages/not-found-page";
 import { ProfilePage } from "./pages/profile-page";
 import { ProtectedPage } from "./pages/protected-page";
 import { PublicPage } from "./pages/public-page";
-import { GeometryPage } from "./pages/tools/geometry-page";
+// import { GeometryPage } from "./pages/tools/geometry-page";
 
 export const App = () => {
   const { isLoading } = useAuth0();
