@@ -73,7 +73,7 @@ export const App = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/geometry" element={<GeometryPage />} />
+      {/* <Route path="/geometry" element={<GeometryPage />} /> */}
       <Route
         path="/profile"
         element={<AuthenticationGuard component={ProfilePage} />}
