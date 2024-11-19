@@ -7,6 +7,7 @@ export const NavBarTabs = () => {
 
   return (
     <div className="nav-bar__tabs">
+      <NavBarTab path="/coordinate-space" label="3D Space" />
       <NavBarTab path="/profile" label="Profile" />
       <NavBarTab path="/public" label="Public" />
       {isAuthenticated && (

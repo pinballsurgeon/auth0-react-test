@@ -8,7 +8,8 @@ const CoordinateSpace = () => {
     scaleX: 1,
     scaleY: 1,
     scaleZ: 1,
-    zoom: 1
+    zoom: 1,
+    tailLength: 0
   });
 
   // Sample 3D points for initial visualization
@@ -55,6 +56,43 @@ const CoordinateSpace = () => {
       ];
     };
 
+    // Draw tails
+    const drawTails = () => {
+      if (config.tailLength > 0) {
+        samplePoints.forEach(point => {
+          const [x, y] = project(point);
+          const tailGradient = g.append('defs')
+            .append('linearGradient')
+            .attr('id', `tail-gradient-${x}-${y}`)
+            .attr('gradientUnits', 'userSpaceOnUse');
+
+          tailGradient.append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', '#69b3a2')
+            .attr('stop-opacity', 0.8);
+
+          tailGradient.append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', '#69b3a2')
+            .attr('stop-opacity', 0);
+
+          // Calculate tail end point based on rotation
+          const angle = (rotation * Math.PI) / 180;
+          const tailLength = 30 * config.tailLength;
+          const tailX = x - Math.cos(angle) * tailLength;
+          const tailY = y - Math.sin(angle) * tailLength;
+
+          g.append('line')
+            .attr('x1', x)
+            .attr('y1', y)
+            .attr('x2', tailX)
+            .attr('y2', tailY)
+            .attr('stroke', `url(#tail-gradient-${x}-${y})`)
+            .attr('stroke-width', 3);
+        });
+      }
+    };
+
     // Draw axes
     const drawAxes = () => {
       const axesPoints = [
@@ -78,9 +116,12 @@ const CoordinateSpace = () => {
 
     // Draw points
     const drawPoints = () => {
-      const points = g.selectAll('circle')
+      drawTails();
+      
+      const points = g.selectAll('circle.point')
         .data(samplePoints)
         .join('circle')
+        .attr('class', 'point')
         .attr('r', 5)
         .attr('fill', '#69b3a2')
         .attr('stroke', '#000')
@@ -93,18 +134,23 @@ const CoordinateSpace = () => {
     };
 
     // Animation loop
+    let animationFrame;
     const animate = () => {
-      rotation += config.rotationSpeed;
-      drawAxes();
-      drawPoints();
-      requestAnimationFrame(animate);
+      if (config.rotationSpeed > 0) {
+        rotation += config.rotationSpeed;
+        g.selectAll('*').remove();
+        drawAxes();
+        drawPoints();
+        animationFrame = requestAnimationFrame(animate);
+      }
     };
 
     animate();
 
     return () => {
-      // Cleanup
-      d3.select(d3Container.current).selectAll('*').remove();
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
     };
   }, [config]);
 
@@ -143,6 +189,74 @@ const CoordinateSpace = () => {
               onChange={(e) => setConfig({
                 ...config,
                 zoom: parseFloat(e.target.value)
+              })}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Scale X
+            </label>
+            <input
+              type="range"
+              min="0.1"
+              max="2"
+              step="0.1"
+              value={config.scaleX}
+              onChange={(e) => setConfig({
+                ...config,
+                scaleX: parseFloat(e.target.value)
+              })}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Scale Y
+            </label>
+            <input
+              type="range"
+              min="0.1"
+              max="2"
+              step="0.1"
+              value={config.scaleY}
+              onChange={(e) => setConfig({
+                ...config,
+                scaleY: parseFloat(e.target.value)
+              })}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Scale Z
+            </label>
+            <input
+              type="range"
+              min="0.1"
+              max="2"
+              step="0.1"
+              value={config.scaleZ}
+              onChange={(e) => setConfig({
+                ...config,
+                scaleZ: parseFloat(e.target.value)
+              })}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Tail Length
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={config.tailLength}
+              onChange={(e) => setConfig({
+                ...config,
+                tailLength: parseFloat(e.target.value)
               })}
               className="w-full"
             />
