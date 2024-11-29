@@ -22,7 +22,7 @@ class Point {
     this.x = this.baseX * scaleX;
     this.y = this.baseY * scaleY;
     this.z = this.baseZ * scaleZ;
-    
+
     // Update history for tail
     this.history.unshift({ x: this.x, y: this.y, z: this.z });
     if (this.history.length > 100) {
@@ -48,7 +48,7 @@ const CoordinateSpace = () => {
   // Initialize fixed points
   useEffect(() => {
     const newPoints = [];
-    
+
     // Create points in a grid pattern
     for (let i = 0; i < config.particleCount; i++) {
       const phi = Math.acos(-1 + (2 * i) / config.particleCount);
@@ -57,7 +57,7 @@ const CoordinateSpace = () => {
       const x = 200 * Math.cos(theta) * Math.sin(phi);
       const y = 200 * Math.sin(theta) * Math.sin(phi);
       const z = 200 * Math.cos(phi);
-      
+
       newPoints.push(new Point(
         x, y, z,
         5 + Math.random() * 5,
@@ -79,7 +79,48 @@ const CoordinateSpace = () => {
       .append('svg')
       .attr('width', width)
       .attr('height', height)
-      .attr('viewBox', [-width/2, -height/2, width, height]);
+      .attr('viewBox', [-width / 2, -height / 2, width, height]);
+
+    const defs = svg.append('defs');
+
+    // Add glow effect
+    const filter = defs.append('filter')
+      .attr('id', 'glow');
+
+    filter.append('feGaussianBlur')
+      .attr('stdDeviation', '2')
+      .attr('result', 'coloredBlur');
+
+    const feMerge = filter.append('feMerge');
+    feMerge.append('feMergeNode')
+      .attr('in', 'coloredBlur');
+    feMerge.append('feMergeNode')
+      .attr('in', 'SourceGraphic');
+
+    // Define gradients for tails
+    const uniqueColors = [...new Set(points.map(p => p.color))];
+
+    uniqueColors.forEach(color => {
+      const gradientId = `tail-gradient-${color.replace('#', '')}`;
+      const gradient = defs.append('linearGradient')
+        .attr('id', gradientId)
+        .attr('gradientUnits', 'userSpaceOnUse');
+
+      gradient.append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', color)
+        .attr('stop-opacity', 0.8);
+
+      gradient.append('stop')
+        .attr('offset', '50%')
+        .attr('stop-color', color)
+        .attr('stop-opacity', 0.3);
+
+      gradient.append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', color)
+        .attr('stop-opacity', 0);
+    });
 
     const g = svg.append('g');
 
@@ -99,7 +140,7 @@ const CoordinateSpace = () => {
     const drawTails = () => {
       points.forEach(point => {
         if (config.tailLength <= 0) return;
-        
+
         const tailPoints = point.history.slice(0, config.tailLength);
         if (tailPoints.length < 2) return;
 
@@ -109,25 +150,6 @@ const CoordinateSpace = () => {
           .y(d => project(d)[1]);
 
         const gradientId = `tail-gradient-${point.color.replace('#', '')}`;
-        const gradient = g.append('defs')
-          .append('linearGradient')
-          .attr('id', gradientId)
-          .attr('gradientUnits', 'userSpaceOnUse');
-
-        gradient.append('stop')
-          .attr('offset', '0%')
-          .attr('stop-color', point.color)
-          .attr('stop-opacity', 0.8);
-
-        gradient.append('stop')
-          .attr('offset', '50%')
-          .attr('stop-color', point.color)
-          .attr('stop-opacity', 0.3);
-
-        gradient.append('stop')
-          .attr('offset', '100%')
-          .attr('stop-color', point.color)
-          .attr('stop-opacity', 0);
 
         g.append('path')
           .datum(tailPoints)
@@ -141,7 +163,7 @@ const CoordinateSpace = () => {
     const drawPoints = () => {
       points.forEach(point => {
         const [x, y] = project(point);
-        
+
         g.append('circle')
           .attr('cx', x)
           .attr('cy', y)
@@ -151,36 +173,21 @@ const CoordinateSpace = () => {
       });
     };
 
-    // Add glow effect
-    const defs = svg.append('defs');
-    const filter = defs.append('filter')
-      .attr('id', 'glow');
-    
-    filter.append('feGaussianBlur')
-      .attr('stdDeviation', '2')
-      .attr('result', 'coloredBlur');
-    
-    const feMerge = filter.append('feMerge');
-    feMerge.append('feMergeNode')
-      .attr('in', 'coloredBlur');
-    feMerge.append('feMergeNode')
-      .attr('in', 'SourceGraphic');
-
     let animationFrame;
     const animate = () => {
       if (config.rotationSpeed !== 0) {
         rotation += config.rotationSpeed;
       }
-      
+
       // Update point positions based on scales
       points.forEach(point => {
         point.updatePosition(config.scaleX, config.scaleY, config.scaleZ);
       });
-      
+
       g.selectAll('*').remove();
       drawTails();
       drawPoints();
-      
+
       animationFrame = requestAnimationFrame(animate);
     };
 
