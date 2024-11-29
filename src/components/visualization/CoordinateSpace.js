@@ -167,8 +167,29 @@ const CoordinateSpace = () => {
     };
   }, [points, config]);
 
+  useEffect(() => {
+    // Force a container resize check on mount
+    const resizeObserver = new ResizeObserver(() => {
+      if (d3Container.current) {
+        const width = d3Container.current.clientWidth;
+        const height = d3Container.current.clientHeight;
+        d3.select(d3Container.current)
+          .select('svg')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('viewBox', [-width / 2, -height / 2, width, height]);
+      }
+    });
+
+    if (d3Container.current) {
+      resizeObserver.observe(d3Container.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen overflow-hidden">
       <div className="bg-gray-800 p-4 border-b border-gray-700">
         <form onSubmit={handleVisualize} className="max-w-2xl mx-auto mb-4">
           <div className="flex gap-2">
@@ -189,7 +210,7 @@ const CoordinateSpace = () => {
         </form>
       </div>
 
-      <div className="flex-1 bg-gray-900" ref={d3Container} />
+      <div className="flex-1 bg-gray-900 w-full" ref={d3Container} style={{ minHeight: '400px' }} />
       
       <div className="p-4 bg-gray-800 border-t border-gray-700">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
