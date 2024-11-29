@@ -6,32 +6,24 @@ import * as d3 from 'd3';
  */
 class Point {
   constructor(x, y, z, radius, color) {
+    this.baseX = x; // Store original positions
+    this.baseY = y;
+    this.baseZ = z;
     this.x = x;
     this.y = y;
     this.z = z;
     this.radius = radius;
     this.color = color;
     this.history = [];
-
-    // Add velocity components (random initial velocities)
-    this.vx = (Math.random() - 0.5) * 2; // Velocity in X
-    this.vy = (Math.random() - 0.5) * 2; // Velocity in Y
-    this.vz = (Math.random() - 0.5) * 2; // Velocity in Z
   }
 
-  updatePosition() {
-    // Update position based on velocity
-    this.x += this.vx;
-    this.y += this.vy;
-    this.z += this.vz;
+  updatePosition(scaleX, scaleY, scaleZ) {
+    // Update position based on scaling
+    this.x = this.baseX * scaleX;
+    this.y = this.baseY * scaleY;
+    this.z = this.baseZ * scaleZ;
 
-    // Keep points within boundaries (bounce effect)
-    const boundary = 200;
-    if (this.x > boundary || this.x < -boundary) this.vx *= -1;
-    if (this.y > boundary || this.y < -boundary) this.vy *= -1;
-    if (this.z > boundary || this.z < -boundary) this.vz *= -1;
-
-    // Record position for tail
+    // Update history for tail
     this.history.unshift({ x: this.x, y: this.y, z: this.z });
     if (this.history.length > 100) {
       this.history.pop();
@@ -134,19 +126,14 @@ const CoordinateSpace = () => {
 
     // Project 3D to 2D
     const project = (point) => {
-      const scale = config.zoom;
+      const scale = 1 * config.zoom;
       const angle = (rotation * Math.PI) / 180;
       const cosA = Math.cos(angle);
       const sinA = Math.sin(angle);
 
-      // Apply scaling
-      const x = point.x * config.scaleX;
-      const y = point.y * config.scaleY;
-      const z = point.z * config.scaleZ;
-
       return [
-        scale * (x * cosA - z * sinA),
-        scale * (y - (x * sinA + z * cosA) * 0.3)
+        scale * (point.x * cosA - point.z * sinA),
+        scale * (point.y - (point.x * sinA + point.z * cosA) * 0.3)
       ];
     };
 
@@ -192,15 +179,9 @@ const CoordinateSpace = () => {
         rotation += config.rotationSpeed;
       }
 
-      // Update point positions
-      points.forEach((point, index) => {
-        point.updatePosition();
-
-        // Log point position and history length
-        if (index === 0) { // Log for the first point as an example
-          console.log(`Point ${index} position:`, point.x, point.y, point.z);
-          console.log(`Point ${index} history length:`, point.history.length);
-        }
+      // Update point positions based on scales
+      points.forEach(point => {
+        point.updatePosition(config.scaleX, config.scaleY, config.scaleZ);
       });
 
       g.selectAll('*').remove();
@@ -350,3 +331,4 @@ const CoordinateSpace = () => {
 };
 
 export default CoordinateSpace;
+
