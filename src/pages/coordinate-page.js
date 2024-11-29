@@ -1,6 +1,6 @@
 import React from 'react';
 import { PageLayout } from "../../components/page-layout";
-import CoordinateSpaceWithSearch from '../../components/visualization/CoordinateSpaceWithSearch';
+import CoordinateSpaceWithSearch from '../components/visualization/CoordinateSpace';
 
 export const CoordinateSpacePage = () => {
   return (
