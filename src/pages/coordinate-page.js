@@ -1,6 +1,6 @@
 import React from 'react';
-import { PageLayout } from "../../components/page-layout";
-import CoordinateSpace from '../../components/visualization/CoordinateSpace';
+import { PageLayout } from "../components/page-layout";
+import CoordinateSpace from '../components/visualization/CoordinateSpace';
 
 export const CoordinateSpacePage = () => {
   return (
@@ -15,4 +15,4 @@ export const CoordinateSpacePage = () => {
   );
 };
 
-export default CoordinateSpacePage;
+// export default CoordinateSpacePage;
