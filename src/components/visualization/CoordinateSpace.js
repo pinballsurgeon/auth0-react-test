@@ -71,16 +71,21 @@ const CoordinateSpace = () => {
   useEffect(() => {
     if (!d3Container.current || points.length === 0) return;
 
-    const width = d3Container.current.clientWidth;
-    const height = d3Container.current.clientHeight;
-    let rotation = 0;
+    // Get the container's dimensions
+    const containerRect = d3Container.current.getBoundingClientRect();
+    const width = containerRect.width;
+    const height = containerRect.height;
 
+    // Clear previous SVG
     d3.select(d3Container.current).selectAll('*').remove();
+
+    // Create new SVG with exact dimensions
     const svg = d3.select(d3Container.current)
       .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-      .attr('viewBox', [-width / 2, -height / 2, width, height]);
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', [-width / 2, -height / 2, width, height])
+      .style('display', 'block');
 
     const defs = svg.append('defs');
     const filter = defs.append('filter')
@@ -189,9 +194,9 @@ const CoordinateSpace = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      <div className="bg-gray-800 p-4 border-b border-gray-700">
-        <form onSubmit={handleVisualize} className="max-w-2xl mx-auto mb-4">
+    <div className="flex flex-col h-full">
+      <div className="bg-gray-800 p-4 border-b border-gray-700 shrink-0">
+        <form onSubmit={handleVisualize} className="max-w-2xl mx-auto">
           <div className="flex gap-2">
             <input
               type="text"
@@ -210,9 +215,9 @@ const CoordinateSpace = () => {
         </form>
       </div>
 
-      <div className="flex-1 bg-gray-900 w-full" ref={d3Container} style={{ minHeight: '400px' }} />
+      <div className="flex-1 bg-gray-900 relative" ref={d3Container} />
       
-      <div className="p-4 bg-gray-800 border-t border-gray-700">
+      <div className="bg-gray-800 border-t border-gray-700 p-4 shrink-0">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300">
