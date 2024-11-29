@@ -137,29 +137,6 @@ const CoordinateSpace = () => {
       ];
     };
 
-    const drawTails = () => {
-      points.forEach(point => {
-        if (config.tailLength <= 0) return;
-
-        const tailPoints = point.history.slice(0, config.tailLength);
-        if (tailPoints.length < 2) return;
-
-        const line = d3.line()
-          .curve(d3.curveBasis)
-          .x(d => project(d)[0])
-          .y(d => project(d)[1]);
-
-        const gradientId = `tail-gradient-${point.color.replace('#', '')}`;
-
-        g.append('path')
-          .datum(tailPoints)
-          .attr('d', line)
-          .attr('stroke', `url(#${gradientId})`)
-          .attr('stroke-width', 2)
-          .attr('fill', 'none');
-      });
-    };
-
     const drawPoints = () => {
       points.forEach(point => {
         const [x, y] = project(point);
@@ -185,7 +162,6 @@ const CoordinateSpace = () => {
       });
 
       g.selectAll('*').remove();
-      drawTails();
       drawPoints();
 
       animationFrame = requestAnimationFrame(animate);
@@ -286,23 +262,6 @@ const CoordinateSpace = () => {
               onChange={(e) => setConfig({
                 ...config,
                 scaleZ: parseFloat(e.target.value)
-              })}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300">
-              Tail Length
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={config.tailLength}
-              onChange={(e) => setConfig({
-                ...config,
-                tailLength: parseInt(e.target.value)
               })}
               className="w-full"
             />
