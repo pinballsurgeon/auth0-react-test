@@ -76,6 +76,9 @@ const CoordinateSpace = () => {
     const width = containerRect.width;
     const height = containerRect.height;
 
+    let rotation = 0;
+
+
     // Clear previous SVG
     d3.select(d3Container.current).selectAll('*').remove();
 
