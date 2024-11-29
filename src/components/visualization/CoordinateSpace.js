@@ -9,10 +9,10 @@ const CoordinateSpace = () => {
     scaleY: 1,
     scaleZ: 1,
     zoom: 1,
-    tailLength: 0
+    tailLength: 0,
+    tailCurve: 0.5  // New parameter to control tail curvature
   });
 
-  // Sample 3D points for initial visualization
   const samplePoints = [
     [1, 1, 1], [-1, -1, -1], [1, -1, 1], [-1, 1, -1],
     [0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5],
@@ -26,20 +26,16 @@ const CoordinateSpace = () => {
     const height = d3Container.current.clientHeight;
     let rotation = 0;
 
-    // Clear previous content
     d3.select(d3Container.current).selectAll('*').remove();
 
-    // Create SVG
     const svg = d3.select(d3Container.current)
       .append('svg')
       .attr('width', width)
       .attr('height', height)
       .attr('viewBox', [-width/2, -height/2, width, height]);
 
-    // Create group for 3D scene
     const g = svg.append('g');
 
-    // Function to project 3D points to 2D
     const project = (point) => {
       const scale = 100 * config.zoom;
       const x = point[0] * config.scaleX;
@@ -56,49 +52,78 @@ const CoordinateSpace = () => {
       ];
     };
 
-    // Draw tails
+    const createCometTail = (startX, startY, rotation) => {
+      const tailLength = 30 * config.tailLength;
+      const segments = 20; // Number of segments in the tail curve
+      const points = [];
+      
+      // Calculate the direction of rotation for proper tail curve
+      const rotationSign = config.rotationSpeed >= 0 ? 1 : -1;
+      
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const angle = rotation + (rotationSign * t * Math.PI * 0.5 * config.tailCurve);
+        
+        // Create a spiral effect by gradually increasing radius
+        const radius = tailLength * t;
+        const x = startX - (Math.cos(angle) * radius);
+        const y = startY - (Math.sin(angle) * radius);
+        
+        points.push([x, y]);
+      }
+      
+      // Create a smooth curve through the points
+      return d3.line().curve(d3.curveBasis)(points);
+    };
+
     const drawTails = () => {
       if (config.tailLength > 0) {
-        samplePoints.forEach(point => {
+        samplePoints.forEach((point, index) => {
           const [x, y] = project(point);
-          const tailGradient = g.append('defs')
+          
+          // Create unique gradient for each tail
+          const gradientId = `comet-gradient-${index}`;
+          const gradient = g.append('defs')
             .append('linearGradient')
-            .attr('id', `tail-gradient-${x}-${y}`)
-            .attr('gradientUnits', 'userSpaceOnUse');
+            .attr('id', gradientId)
+            .attr('gradientUnits', 'userSpaceOnUse')
+            .attr('x1', x)
+            .attr('y1', y)
+            .attr('x2', x - 30 * config.tailLength)
+            .attr('y2', y);
 
-          tailGradient.append('stop')
+          gradient.append('stop')
             .attr('offset', '0%')
             .attr('stop-color', '#69b3a2')
             .attr('stop-opacity', 0.8);
 
-          tailGradient.append('stop')
+          gradient.append('stop')
+            .attr('offset', '50%')
+            .attr('stop-color', '#69b3a2')
+            .attr('stop-opacity', 0.3);
+
+          gradient.append('stop')
             .attr('offset', '100%')
             .attr('stop-color', '#69b3a2')
             .attr('stop-opacity', 0);
 
-          // Calculate tail end point based on rotation
-          const angle = (rotation * Math.PI) / 180;
-          const tailLength = 30 * config.tailLength;
-          const tailX = x - Math.cos(angle) * tailLength;
-          const tailY = y - Math.sin(angle) * tailLength;
-
-          g.append('line')
-            .attr('x1', x)
-            .attr('y1', y)
-            .attr('x2', tailX)
-            .attr('y2', tailY)
-            .attr('stroke', `url(#tail-gradient-${x}-${y})`)
-            .attr('stroke-width', 3);
+          // Create the curved tail path
+          const tailPath = createCometTail(x, y, (rotation * Math.PI) / 180);
+          
+          g.append('path')
+            .attr('d', tailPath)
+            .attr('stroke', `url(#${gradientId})`)
+            .attr('stroke-width', 3)
+            .attr('fill', 'none');
         });
       }
     };
 
-    // Draw axes
     const drawAxes = () => {
       const axesPoints = [
-        [[0, 0, 0], [1, 0, 0]], // x-axis
-        [[0, 0, 0], [0, 1, 0]], // y-axis
-        [[0, 0, 0], [0, 0, 1]]  // z-axis
+        [[0, 0, 0], [1, 0, 0]],
+        [[0, 0, 0], [0, 1, 0]],
+        [[0, 0, 0], [0, 0, 1]]
       ];
 
       axesPoints.forEach(([start, end], i) => {
@@ -114,7 +139,6 @@ const CoordinateSpace = () => {
       });
     };
 
-    // Draw points
     const drawPoints = () => {
       drawTails();
       
@@ -133,10 +157,9 @@ const CoordinateSpace = () => {
       });
     };
 
-    // Animation loop
     let animationFrame;
     const animate = () => {
-      if (config.rotationSpeed > 0) {
+      if (config.rotationSpeed !== 0) {
         rotation += config.rotationSpeed;
         g.selectAll('*').remove();
         drawAxes();
@@ -165,7 +188,7 @@ const CoordinateSpace = () => {
             </label>
             <input
               type="range"
-              min="0"
+              min="-2"
               max="2"
               step="0.1"
               value={config.rotationSpeed}
@@ -195,57 +218,6 @@ const CoordinateSpace = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Scale X
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={config.scaleX}
-              onChange={(e) => setConfig({
-                ...config,
-                scaleX: parseFloat(e.target.value)
-              })}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Scale Y
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={config.scaleY}
-              onChange={(e) => setConfig({
-                ...config,
-                scaleY: parseFloat(e.target.value)
-              })}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Scale Z
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={config.scaleZ}
-              onChange={(e) => setConfig({
-                ...config,
-                scaleZ: parseFloat(e.target.value)
-              })}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
               Tail Length
             </label>
             <input
@@ -257,6 +229,23 @@ const CoordinateSpace = () => {
               onChange={(e) => setConfig({
                 ...config,
                 tailLength: parseFloat(e.target.value)
+              })}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Tail Curve
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              value={config.tailCurve}
+              onChange={(e) => setConfig({
+                ...config,
+                tailCurve: parseFloat(e.target.value)
               })}
               className="w-full"
             />
