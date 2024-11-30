@@ -87,7 +87,7 @@ const CoordinateSpace = () => {
       .append('svg')
       .attr('width', '100%')
       .attr('height', '100%')
-      .attr('viewBox', [-width , -height , width, height])
+      .attr('viewBox', [-width / 4, -height / 4, width, height])
       .style('display', 'block');
 
     const defs = svg.append('defs');
