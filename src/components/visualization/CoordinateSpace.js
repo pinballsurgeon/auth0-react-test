@@ -86,8 +86,8 @@ const CoordinateSpace = () => {
     const svg = d3.select(d3Container.current)
       .append('svg')
       .attr('width', '100%')
-      .attr('height', '100%')
-      .attr('viewBox', [-width / 4, -height / 4, width, height])
+      .attr('height', '300%')
+      .attr('viewBox', [-width / 2, -height / 2, width, height])
       .style('display', 'block');
 
     const defs = svg.append('defs');
