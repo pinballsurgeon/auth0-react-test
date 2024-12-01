@@ -3,30 +3,26 @@
 .page-layout {
   display: flex;
   flex-direction: column;
-  /* Remove align-items to allow children to stretch */
-  /* align-items: center; */
+  align-items: center;
 
-  height: 100vh; /* Ensure full viewport height */
+  height: 100%;
   width: 100%;
 }
 
 .page-layout__content {
   flex: 1;
+  flex-basis: auto;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
 
-  /* Remove fixed margin-top */
-  /* margin-top: 8rem; */
+  margin-top: 8rem;
   max-width: 120rem;
   width: 100%;
-  /* Optional: Add padding if needed */
-  padding-top: 2rem; /* Example padding */
 }
 
 @media only screen and (max-width: 640px) {
   .page-layout__content {
-    /* Remove or adjust margin-top */
-    /* margin-top: 6.4rem; */
-    padding-top: 1rem; /* Example responsive padding */
+    margin-top: 6.4rem;
   }
 }
