@@ -218,19 +218,19 @@ const CoordinateSpace = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700">
+      <div className="bg-gray-800 py-2 px-4 border-b border-gray-700">
         <form onSubmit={handleVisualize} className="max-w-2xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-2">
+          <div className="flex flex-row gap-2">
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Enter text to visualize..."
-              className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="flex-1 px-3 py-1 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
             <button
               type="submit"
-              className="mt-2 md:mt-0 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Visualize
             </button>
@@ -239,13 +239,13 @@ const CoordinateSpace = () => {
       </div>
 
       {/* D3 Visualization Container */}
-      <div className="flex-1 bg-gray-900 relative min-h-[60vh]" ref={d3Container}>
+      <div className="flex-1 bg-gray-900 relative h-[calc(100%-120px)]" ref={d3Container}>
         {/* SVG will be appended here by D3 */}
       </div>
 
       {/* Footer Controls */}
-      <div className="bg-gray-800 border-t border-gray-700 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="bg-gray-800 border-t border-gray-700 py-2 px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {/* Rotation Speed Control */}
           <div>
             <label className="block text-sm font-medium text-gray-300">
