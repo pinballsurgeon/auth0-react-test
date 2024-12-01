@@ -216,9 +216,9 @@ const CoordinateSpace = () => {
   }, [d3Container]);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700 shrink-0">
+      <div className="bg-gray-800 p-4 border-b border-gray-700">
         <form onSubmit={handleVisualize} className="max-w-2xl mx-auto">
           <div className="flex flex-col md:flex-row gap-2">
             <input
@@ -239,12 +239,12 @@ const CoordinateSpace = () => {
       </div>
 
       {/* D3 Visualization Container */}
-      <div className="flex-1 bg-gray-900 relative" ref={d3Container}>
+      <div className="flex-1 bg-gray-900 relative min-h-[60vh]" ref={d3Container}>
         {/* SVG will be appended here by D3 */}
       </div>
 
       {/* Footer Controls */}
-      <div className="bg-gray-800 border-t border-gray-700 p-4 shrink-0">
+      <div className="bg-gray-800 border-t border-gray-700 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {/* Rotation Speed Control */}
           <div>
