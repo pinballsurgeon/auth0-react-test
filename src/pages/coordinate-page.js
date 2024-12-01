@@ -7,9 +7,7 @@ import CoordinateSpace from '../components/visualization/CoordinateSpace';
 export const CoordinateSpacePage = () => {
   return (
     <PageLayout>
-      <div className="flex-1 w-full">
-        <CoordinateSpace />
-      </div>
+      <CoordinateSpace />
     </PageLayout>
   );
 };
