@@ -82,6 +82,8 @@ const CoordinateSpace = () => {
     const width = containerRect.width;
     const height = containerRect.height;
 
+    console.log(`Container dimensions: width=${width}, height=${height}`); // For debugging
+
     let rotation = 0;
 
     // Clear previous SVG
@@ -213,6 +215,7 @@ const CoordinateSpace = () => {
       const height = containerRect.height;
 
       d3.select(svgElement).attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`);
+      console.log(`Updated viewBox to: -${width / 2} -${height / 2} ${width} ${height}`); // For debugging
     };
 
     // Initial dimension setup
