@@ -239,7 +239,7 @@ const CoordinateSpace = () => {
       </div>
 
       {/* D3 Visualization Container */}
-      <div className="flex-1 bg-gray-900 relative h-[calc(100%-120px)]" ref={d3Container}>
+      <div className="flex-1 bg-gray-900 relative h-[calc(100vh-180px)]" ref={d3Container}>
         {/* SVG will be appended here by D3 */}
       </div>
 
