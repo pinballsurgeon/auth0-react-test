@@ -1,3 +1,5 @@
+// auth0-react-test\src\pages\coordinate-page.js
+
 import React from 'react';
 import { PageLayout } from "../components/page-layout";
 import CoordinateSpace from '../components/visualization/CoordinateSpace';
@@ -5,7 +7,7 @@ import CoordinateSpace from '../components/visualization/CoordinateSpace';
 export const CoordinateSpacePage = () => {
   return (
     <PageLayout>
-      <div className="flex-1 h-[calc(100vh-80px)] w-full">
+      <div className="flex-1 w-full">
         <CoordinateSpace />
       </div>
     </PageLayout>
