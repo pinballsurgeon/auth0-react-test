@@ -96,8 +96,7 @@ const CoordinateSpace = () => {
       .attr('width', '100%')
       .attr('height', '100%')
       .attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`)
-      .attr('preserveAspectRatio', 'xMidYMid meet') // Maintain aspect ratio
-      .style('display', 'block');
+      .attr('preserveAspectRatio', 'xMidYMid meet');
 
     // Define filters and gradients
     const defs = svg.append('defs');
@@ -111,33 +110,6 @@ const CoordinateSpace = () => {
     const feMerge = filter.append('feMerge');
     feMerge.append('feMergeNode').attr('in', 'coloredBlur');
     feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
-
-    const uniqueColors = [...new Set(points.map((p) => p.color))];
-    uniqueColors.forEach((color) => {
-      const gradientId = `tail-gradient-${color.replace('#', '')}`;
-      const gradient = defs
-        .append('linearGradient')
-        .attr('id', gradientId)
-        .attr('gradientUnits', 'userSpaceOnUse');
-
-      gradient
-        .append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', color)
-        .attr('stop-opacity', 0.8);
-
-      gradient
-        .append('stop')
-        .attr('offset', '50%')
-        .attr('stop-color', color)
-        .attr('stop-opacity', 0.3);
-
-      gradient
-        .append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', color)
-        .attr('stop-opacity', 0);
-    });
 
     const g = svg.append('g');
 
