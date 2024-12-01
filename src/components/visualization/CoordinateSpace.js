@@ -77,6 +77,13 @@ const CoordinateSpace = () => {
   useEffect(() => {
     if (!d3Container.current || points.length === 0) return;
 
+    // Get the container's dimensions
+    const containerRect = d3Container.current.getBoundingClientRect();
+    const width = containerRect.width;
+    const height = containerRect.height;
+
+    let rotation = 0;
+
     // Clear previous SVG
     d3.select(d3Container.current).selectAll('*').remove();
 
@@ -92,9 +99,7 @@ const CoordinateSpace = () => {
 
     // Define filters and gradients
     const defs = svg.append('defs');
-    const filter = defs
-      .append('filter')
-      .attr('id', 'glow');
+    const filter = defs.append('filter').attr('id', 'glow');
 
     filter
       .append('feGaussianBlur')
@@ -148,15 +153,24 @@ const CoordinateSpace = () => {
 
     // Draw points
     const drawPoints = (rotation, scale) => {
-      g.selectAll('circle').data(points).join('circle')
-        .attr('cx', (d) => project(d, rotation, scale)[0])
-        .attr('cy', (d) => project(d, rotation, scale)[1])
+      // Use data join for better performance
+      const circles = g.selectAll('circle').data(points, (d) => d);
+
+      // Enter
+      circles
+        .enter()
+        .append('circle')
         .attr('r', (d) => d.radius)
         .attr('fill', (d) => d.color)
-        .attr('filter', 'url(#glow)');
+        .attr('filter', 'url(#glow)')
+        .merge(circles) // Update existing circles
+        .attr('cx', (d) => project(d, rotation, scale)[0])
+        .attr('cy', (d) => project(d, rotation, scale)[1]);
+
+      // Exit
+      circles.exit().remove();
     };
 
-    let rotation = 0;
     let animationFrame;
 
     const animate = () => {
@@ -168,7 +182,10 @@ const CoordinateSpace = () => {
         point.updatePosition(config.scaleX, config.scaleY, config.scaleZ);
       });
 
-      g.selectAll('*').remove(); // Clear previous frame
+      // Clear previous frame
+      g.selectAll('*').remove();
+
+      // Draw updated points
       drawPoints(rotation, config.zoom);
 
       animationFrame = requestAnimationFrame(animate);
@@ -185,7 +202,9 @@ const CoordinateSpace = () => {
 
   // Handle responsive resizing
   useEffect(() => {
-    const svgElement = d3Container.current ? d3Container.current.querySelector('svg') : null;
+    const svgElement = d3Container.current
+      ? d3Container.current.querySelector('svg')
+      : null;
     if (!svgElement) return;
 
     const updateSVGDimensions = () => {
@@ -193,8 +212,7 @@ const CoordinateSpace = () => {
       const width = containerRect.width;
       const height = containerRect.height;
 
-      d3.select(svgElement)
-        .attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`);
+      d3.select(svgElement).attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`);
     };
 
     // Initial dimension setup
