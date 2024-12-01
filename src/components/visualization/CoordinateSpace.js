@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
+// Define the Point class
 class Point {
   constructor(x, y, z, radius, color) {
     this.baseX = x;
@@ -35,19 +36,20 @@ const CoordinateSpace = () => {
     scaleZ: 1,
     zoom: 1,
     tailLength: 50,
-    particleCount: 10
+    particleCount: 10,
   });
 
   const [points, setPoints] = useState([]);
 
   const handleVisualize = (e) => {
     e.preventDefault();
-    setConfig(prev => ({
+    setConfig((prev) => ({
       ...prev,
-      particleCount: searchInput.length || 1
+      particleCount: Math.max(searchInput.length, 1), // Ensure at least 1
     }));
   };
 
+  // Initialize points based on particle count
   useEffect(() => {
     const newPoints = [];
     for (let i = 0; i < config.particleCount; i++) {
@@ -58,11 +60,15 @@ const CoordinateSpace = () => {
       const y = 200 * Math.sin(theta) * Math.sin(phi);
       const z = 200 * Math.cos(phi);
 
-      newPoints.push(new Point(
-        x, y, z,
-        5 + Math.random() * 5,
-        d3.interpolateSpectral(i / config.particleCount)
-      ));
+      newPoints.push(
+        new Point(
+          x,
+          y,
+          z,
+          5 + Math.random() * 5,
+          d3.interpolateSpectral(i / config.particleCount)
+        )
+      );
     }
     setPoints(newPoints);
   }, [config.particleCount]);
@@ -71,57 +77,56 @@ const CoordinateSpace = () => {
   useEffect(() => {
     if (!d3Container.current || points.length === 0) return;
 
-    // Get the container's dimensions
-    const containerRect = d3Container.current.getBoundingClientRect();
-    const width = containerRect.width;
-    const height = containerRect.height;
-
-    let rotation = 0;
-
-
     // Clear previous SVG
     d3.select(d3Container.current).selectAll('*').remove();
 
     // Create new SVG with exact dimensions
-    const svg = d3.select(d3Container.current)
+    const svg = d3
+      .select(d3Container.current)
       .append('svg')
       .attr('width', '100%')
-      .attr('height', '300%')
-      .attr('viewBox', [-width / 2, -height / 2, width, height])
+      .attr('height', '100%')
+      .attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet') // Maintain aspect ratio
       .style('display', 'block');
 
+    // Define filters and gradients
     const defs = svg.append('defs');
-    const filter = defs.append('filter')
+    const filter = defs
+      .append('filter')
       .attr('id', 'glow');
 
-    filter.append('feGaussianBlur')
+    filter
+      .append('feGaussianBlur')
       .attr('stdDeviation', '2')
       .attr('result', 'coloredBlur');
 
     const feMerge = filter.append('feMerge');
-    feMerge.append('feMergeNode')
-      .attr('in', 'coloredBlur');
-    feMerge.append('feMergeNode')
-      .attr('in', 'SourceGraphic');
+    feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
-    const uniqueColors = [...new Set(points.map(p => p.color))];
-    uniqueColors.forEach(color => {
+    const uniqueColors = [...new Set(points.map((p) => p.color))];
+    uniqueColors.forEach((color) => {
       const gradientId = `tail-gradient-${color.replace('#', '')}`;
-      const gradient = defs.append('linearGradient')
+      const gradient = defs
+        .append('linearGradient')
         .attr('id', gradientId)
         .attr('gradientUnits', 'userSpaceOnUse');
 
-      gradient.append('stop')
+      gradient
+        .append('stop')
         .attr('offset', '0%')
         .attr('stop-color', color)
         .attr('stop-opacity', 0.8);
 
-      gradient.append('stop')
+      gradient
+        .append('stop')
         .attr('offset', '50%')
         .attr('stop-color', color)
         .attr('stop-opacity', 0.3);
 
-      gradient.append('stop')
+      gradient
+        .append('stop')
         .attr('offset', '100%')
         .attr('stop-color', color)
         .attr('stop-opacity', 0);
@@ -129,40 +134,43 @@ const CoordinateSpace = () => {
 
     const g = svg.append('g');
 
-    const project = (point) => {
-      const scale = 1 * config.zoom;
+    // Projection function
+    const project = (point, rotation, scale) => {
       const angle = (rotation * Math.PI) / 180;
       const cosA = Math.cos(angle);
       const sinA = Math.sin(angle);
 
       return [
         scale * (point.x * cosA - point.z * sinA),
-        scale * (point.y - (point.x * sinA + point.z * cosA) * 0.3)
+        scale * (point.y - (point.x * sinA + point.z * cosA) * 0.3),
       ];
     };
 
-    const drawPoints = () => {
-      points.forEach(point => {
-        const [x, y] = project(point);
-        g.append('circle')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', point.radius)
-          .attr('fill', point.color)
-          .attr('filter', 'url(#glow)');
-      });
+    // Draw points
+    const drawPoints = (rotation, scale) => {
+      g.selectAll('circle').data(points).join('circle')
+        .attr('cx', (d) => project(d, rotation, scale)[0])
+        .attr('cy', (d) => project(d, rotation, scale)[1])
+        .attr('r', (d) => d.radius)
+        .attr('fill', (d) => d.color)
+        .attr('filter', 'url(#glow)');
     };
 
+    let rotation = 0;
     let animationFrame;
+
     const animate = () => {
       if (config.rotationSpeed !== 0) {
         rotation += config.rotationSpeed;
       }
-      points.forEach(point => {
+
+      points.forEach((point) => {
         point.updatePosition(config.scaleX, config.scaleY, config.scaleZ);
       });
-      g.selectAll('*').remove();
-      drawPoints();
+
+      g.selectAll('*').remove(); // Clear previous frame
+      drawPoints(rotation, config.zoom);
+
       animationFrame = requestAnimationFrame(animate);
     };
 
@@ -175,32 +183,54 @@ const CoordinateSpace = () => {
     };
   }, [points, config]);
 
+  // Handle responsive resizing
   useEffect(() => {
-    // Force a container resize check on mount
+    const svgElement = d3Container.current ? d3Container.current.querySelector('svg') : null;
+    if (!svgElement) return;
+
+    const updateSVGDimensions = () => {
+      const containerRect = d3Container.current.getBoundingClientRect();
+      const width = containerRect.width;
+      const height = containerRect.height;
+
+      d3.select(svgElement)
+        .attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`);
+    };
+
+    // Initial dimension setup
+    updateSVGDimensions();
+
+    // Debounce function to limit resize calls
+    const debounce = (func, wait) => {
+      let timeout;
+      return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(), wait);
+      };
+    };
+
+    const debouncedResize = debounce(updateSVGDimensions, 200);
+
+    // Setup ResizeObserver
     const resizeObserver = new ResizeObserver(() => {
-      if (d3Container.current) {
-        const width = d3Container.current.clientWidth;
-        const height = d3Container.current.clientHeight;
-        d3.select(d3Container.current)
-          .select('svg')
-          .attr('width', width)
-          .attr('height', height)
-          .attr('viewBox', [-width / 2, -height / 2, width, height]);
-      }
+      debouncedResize();
     });
 
     if (d3Container.current) {
       resizeObserver.observe(d3Container.current);
     }
 
-    return () => resizeObserver.disconnect();
-  }, []);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [d3Container]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-screen">
+      {/* Header */}
       <div className="bg-gray-800 p-4 border-b border-gray-700 shrink-0">
         <form onSubmit={handleVisualize} className="max-w-2xl mx-auto">
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row gap-2">
             <input
               type="text"
               value={searchInput}
@@ -210,7 +240,7 @@ const CoordinateSpace = () => {
             />
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-2 md:mt-0 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Visualize
             </button>
@@ -218,10 +248,15 @@ const CoordinateSpace = () => {
         </form>
       </div>
 
-      <div className="flex-1 bg-gray-900 relative" ref={d3Container} />
-      
+      {/* D3 Visualization Container */}
+      <div className="flex-1 bg-gray-900 relative" ref={d3Container}>
+        {/* SVG will be appended here by D3 */}
+      </div>
+
+      {/* Footer Controls */}
       <div className="bg-gray-800 border-t border-gray-700 p-4 shrink-0">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* Rotation Speed Control */}
           <div>
             <label className="block text-sm font-medium text-gray-300">
               Rotation Speed
@@ -232,13 +267,17 @@ const CoordinateSpace = () => {
               max="2"
               step="0.1"
               value={config.rotationSpeed}
-              onChange={(e) => setConfig({
-                ...config,
-                rotationSpeed: parseFloat(e.target.value)
-              })}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  rotationSpeed: parseFloat(e.target.value),
+                })
+              }
               className="w-full"
             />
           </div>
+
+          {/* Zoom Control */}
           <div>
             <label className="block text-sm font-medium text-gray-300">
               Zoom
@@ -249,13 +288,17 @@ const CoordinateSpace = () => {
               max="2"
               step="0.1"
               value={config.zoom}
-              onChange={(e) => setConfig({
-                ...config,
-                zoom: parseFloat(e.target.value)
-              })}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  zoom: parseFloat(e.target.value),
+                })
+              }
               className="w-full"
             />
           </div>
+
+          {/* Scale X Control */}
           <div>
             <label className="block text-sm font-medium text-gray-300">
               Scale X
@@ -266,13 +309,17 @@ const CoordinateSpace = () => {
               max="2"
               step="0.1"
               value={config.scaleX}
-              onChange={(e) => setConfig({
-                ...config,
-                scaleX: parseFloat(e.target.value)
-              })}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  scaleX: parseFloat(e.target.value),
+                })
+              }
               className="w-full"
             />
           </div>
+
+          {/* Scale Y Control */}
           <div>
             <label className="block text-sm font-medium text-gray-300">
               Scale Y
@@ -283,13 +330,17 @@ const CoordinateSpace = () => {
               max="2"
               step="0.1"
               value={config.scaleY}
-              onChange={(e) => setConfig({
-                ...config,
-                scaleY: parseFloat(e.target.value)
-              })}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  scaleY: parseFloat(e.target.value),
+                })
+              }
               className="w-full"
             />
           </div>
+
+          {/* Scale Z Control */}
           <div>
             <label className="block text-sm font-medium text-gray-300">
               Scale Z
@@ -300,10 +351,12 @@ const CoordinateSpace = () => {
               max="2"
               step="0.1"
               value={config.scaleZ}
-              onChange={(e) => setConfig({
-                ...config,
-                scaleZ: parseFloat(e.target.value)
-              })}
+              onChange={(e) =>
+                setConfig({
+                  ...config,
+                  scaleZ: parseFloat(e.target.value),
+                })
+              }
               className="w-full"
             />
           </div>
