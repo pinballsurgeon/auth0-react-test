@@ -6,17 +6,10 @@ import { MobileNavBar } from "./navigation/mobile/mobile-nav-bar";
 
 export const PageLayout = ({ children }) => {
   return (
-    <div className="flex flex-col h-screen">
-      {/* Desktop Navigation */}
+    <div className="page-layout">
       <NavBar />
-      
-      {/* Mobile Navigation */}
       <MobileNavBar />
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {children}
-      </div>
+      <div className="page-layout__content">{children}</div>
     </div>
   );
 };
