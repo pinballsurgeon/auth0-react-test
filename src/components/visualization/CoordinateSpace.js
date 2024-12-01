@@ -111,31 +111,31 @@ const CoordinateSpace = () => {
     feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
     const uniqueColors = [...new Set(points.map((p) => p.color))];
-    uniqueColors.forEach((color) => {
-      const gradientId = `tail-gradient-${color.replace('#', '')}`;
-      const gradient = defs
-        .append('linearGradient')
-        .attr('id', gradientId)
-        .attr('gradientUnits', 'userSpaceOnUse');
+    // uniqueColors.forEach((color) => {
+    //   const gradientId = `tail-gradient-${color.replace('#', '')}`;
+    //   const gradient = defs
+    //     .append('linearGradient')
+    //     .attr('id', gradientId)
+    //     .attr('gradientUnits', 'userSpaceOnUse');
 
-      gradient
-        .append('stop')
-        .attr('offset', '0%')
-        .attr('stop-color', color)
-        .attr('stop-opacity', 0.8);
+    //   gradient
+    //     .append('stop')
+    //     .attr('offset', '0%')
+    //     .attr('stop-color', color)
+    //     .attr('stop-opacity', 0.8);
 
-      gradient
-        .append('stop')
-        .attr('offset', '50%')
-        .attr('stop-color', color)
-        .attr('stop-opacity', 0.3);
+    //   gradient
+    //     .append('stop')
+    //     .attr('offset', '50%')
+    //     .attr('stop-color', color)
+    //     .attr('stop-opacity', 0.3);
 
-      gradient
-        .append('stop')
-        .attr('offset', '100%')
-        .attr('stop-color', color)
-        .attr('stop-opacity', 0);
-    });
+    //   gradient
+    //     .append('stop')
+    //     .attr('offset', '100%')
+    //     .attr('stop-color', color)
+    //     .attr('stop-opacity', 0);
+    // });
 
     const g = svg.append('g');
 
