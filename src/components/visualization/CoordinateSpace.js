@@ -1,9 +1,8 @@
-// auth0-react-test\src\components\visualization\CoordinateSpace.js
-
 import React, { useRef, useEffect, useState } from 'react';
 import * as d3 from 'd3';
+import VisualizationLayout from '../layout/VisualizationLayout';
 
-// Define the Point class
+// Point class definition
 class Point {
   constructor(x, y, z, radius, color) {
     this.baseX = x;
@@ -43,11 +42,99 @@ const CoordinateSpace = () => {
 
   const [points, setPoints] = useState([]);
 
+  // Header Component
+  const Header = () => (
+    <form onSubmit={handleVisualize} className="max-w-2xl mx-auto">
+      <div className="flex flex-col md:flex-row gap-2">
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Enter text to visualize..."
+          className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="md:mt-0 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        >
+          Visualize
+        </button>
+      </div>
+    </form>
+  );
+
+  // Control Slider Component
+  const ControlSlider = ({ label, value, onChange, min, max, step }) => (
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-between items-center">
+        <label className="text-sm font-medium text-gray-300">
+          {label}
+        </label>
+        <span className="text-xs text-gray-400">{value.toFixed(2)}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full accent-blue-500"
+      />
+    </div>
+  );
+
+  // Controls Component
+  const Controls = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <ControlSlider
+        label="Rotation Speed"
+        value={config.rotationSpeed}
+        onChange={(value) => setConfig(prev => ({ ...prev, rotationSpeed: value }))}
+        min={-2}
+        max={2}
+        step={0.1}
+      />
+      <ControlSlider
+        label="Zoom"
+        value={config.zoom}
+        onChange={(value) => setConfig(prev => ({ ...prev, zoom: value }))}
+        min={0.1}
+        max={2}
+        step={0.1}
+      />
+      <ControlSlider
+        label="Scale X"
+        value={config.scaleX}
+        onChange={(value) => setConfig(prev => ({ ...prev, scaleX: value }))}
+        min={0.1}
+        max={2}
+        step={0.1}
+      />
+      <ControlSlider
+        label="Scale Y"
+        value={config.scaleY}
+        onChange={(value) => setConfig(prev => ({ ...prev, scaleY: value }))}
+        min={0.1}
+        max={2}
+        step={0.1}
+      />
+      <ControlSlider
+        label="Scale Z"
+        value={config.scaleZ}
+        onChange={(value) => setConfig(prev => ({ ...prev, scaleZ: value }))}
+        min={0.1}
+        max={2}
+        step={0.1}
+      />
+    </div>
+  );
+
   const handleVisualize = (e) => {
     e.preventDefault();
     setConfig((prev) => ({
       ...prev,
-      particleCount: Math.max(searchInput.length, 1), // Ensure at least 1
+      particleCount: Math.max(searchInput.length, 1),
     }));
   };
 
@@ -79,14 +166,9 @@ const CoordinateSpace = () => {
   useEffect(() => {
     if (!d3Container.current || points.length === 0) return;
 
-    // Get the container's dimensions
     const containerRect = d3Container.current.getBoundingClientRect();
     const width = containerRect.width;
     const height = containerRect.height;
-
-    console.log(`Container dimensions: width=${width}, height=${height}`); // For debugging
-
-    let rotation = 0;
 
     // Clear previous SVG
     d3.select(d3Container.current).selectAll('*').remove();
@@ -126,6 +208,8 @@ const CoordinateSpace = () => {
         scale * (point.y - (point.x * sinA + point.z * cosA) * 0.3),
       ];
     };
+
+    let rotation = 0;
 
     // Draw points
     const drawPoints = (rotation, scale) => {
@@ -178,186 +262,41 @@ const CoordinateSpace = () => {
 
   // Handle responsive resizing
   useEffect(() => {
-    const svgElement = d3Container.current
-      ? d3Container.current.querySelector('svg')
-      : null;
-    if (!svgElement) return;
+    if (!d3Container.current) return;
 
     const updateSVGDimensions = () => {
+      const svgElement = d3Container.current.querySelector('svg');
+      if (!svgElement) return;
+
       const containerRect = d3Container.current.getBoundingClientRect();
       const width = containerRect.width;
       const height = containerRect.height;
 
-      d3.select(svgElement).attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`);
-      console.log(`Updated viewBox to: -${width / 2} -${height / 2} ${width} ${height}`); // For debugging
+      d3.select(svgElement)
+        .attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`);
     };
 
-    // Initial dimension setup
-    updateSVGDimensions();
+    const debouncedResize = _.debounce(updateSVGDimensions, 200);
 
-    // Debounce function to limit resize calls
-    const debounce = (func, wait) => {
-      let timeout;
-      return () => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(), wait);
-      };
-    };
-
-    const debouncedResize = debounce(updateSVGDimensions, 200);
-
-    // Setup ResizeObserver
-    const resizeObserver = new ResizeObserver(() => {
-      debouncedResize();
-    });
-
-    if (d3Container.current) {
-      resizeObserver.observe(d3Container.current);
-    }
+    const resizeObserver = new ResizeObserver(debouncedResize);
+    resizeObserver.observe(d3Container.current);
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [d3Container]);
+  }, []);
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700 shrink-0">
-        <form onSubmit={handleVisualize} className="max-w-2xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-2">
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Enter text to visualize..."
-              className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="mt-2 md:mt-0 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Visualize
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* D3 Visualization Container */}
-      <div className="flex-1 bg-gray-900 relative" ref={d3Container}>
-        {/* SVG will be appended here by D3 */}
-      </div>
-
-      {/* Footer Controls */}
-      <div className="bg-gray-800 border-t border-gray-700 p-4 shrink-0">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {/* Rotation Speed Control */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300">
-              Rotation Speed
-            </label>
-            <input
-              type="range"
-              min="-2"
-              max="2"
-              step="0.1"
-              value={config.rotationSpeed}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  rotationSpeed: parseFloat(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </div>
-
-          {/* Zoom Control */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300">
-              Zoom
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={config.zoom}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  zoom: parseFloat(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </div>
-
-          {/* Scale X Control */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300">
-              Scale X
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={config.scaleX}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  scaleX: parseFloat(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </div>
-
-          {/* Scale Y Control */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300">
-              Scale Y
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={config.scaleY}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  scaleY: parseFloat(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </div>
-
-          {/* Scale Z Control */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300">
-              Scale Z
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={config.scaleZ}
-              onChange={(e) =>
-                setConfig({
-                  ...config,
-                  scaleZ: parseFloat(e.target.value),
-                })
-              }
-              className="w-full"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <VisualizationLayout
+      header={<Header />}
+      controls={<Controls />}
+    >
+      <div 
+        ref={d3Container}
+        className="w-full h-full bg-gray-900"
+        style={{ minHeight: 0 }} // Prevents flex content from overflowing
+      />
+    </VisualizationLayout>
   );
 };
 
