@@ -276,7 +276,16 @@ const CoordinateSpace = () => {
         .attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`);
     };
 
-    const debouncedResize = _.debounce(updateSVGDimensions, 200);
+    // Debounce function to limit resize calls
+    const debounce = (func, wait) => {
+      let timeout;
+      return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(), wait);
+      };
+    };
+
+    const debouncedResize = debounce(updateSVGDimensions, 200);
 
     const resizeObserver = new ResizeObserver(debouncedResize);
     resizeObserver.observe(d3Container.current);
