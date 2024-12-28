@@ -312,8 +312,8 @@ const CoordinateSpace = () => {
         className="w-full h-full bg-gray-900 overflow-hidden"
         style={{ 
           
-          width: '70%',
-          height: '70%',
+          width: '40%',
+          height: '40%',
           minHeight: 0,
           maxHeight: '70%',
           aspectRatio: '1/1'
