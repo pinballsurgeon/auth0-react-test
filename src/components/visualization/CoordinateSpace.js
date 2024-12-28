@@ -39,7 +39,6 @@ const CoordinateSpace = () => {
     scaleY: 1,
     scaleZ: 1,
     zoom: 1,
-    tailLength: 50,
     particleCount: 50,
   });
 
