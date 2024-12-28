@@ -313,8 +313,8 @@ const CoordinateSpace = () => {
         style={{ 
           marginLeft: 'auto',
           marginRight: 'auto',
-          width: '60%',
-          height: '60%',
+          width: '50%',
+          height: '50%',
           minHeight: 0,
           maxHeight: '70%',
           aspectRatio: '1/1'
