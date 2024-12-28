@@ -309,7 +309,7 @@ const CoordinateSpace = () => {
       controls={<Controls config={config} setConfig={setConfig} />}
     >
       {/* Full-Screen Centering Wrapper */}
-      <div className="flex justify-center items-center w-full h-full">
+      <div className="flex justify-center items-center w-half h-half">
         <div
           ref={d3Container}
           className="
