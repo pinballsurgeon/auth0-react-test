@@ -40,7 +40,7 @@ const CoordinateSpace = () => {
     scaleZ: 1,
     zoom: 1,
     tailLength: 50,
-    particleCount: 10,
+    particleCount: 50,
   });
 
   const [points, setPoints] = useState([]);
