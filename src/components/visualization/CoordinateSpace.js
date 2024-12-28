@@ -321,8 +321,7 @@ const CoordinateSpace = () => {
             flex justify-center items-center
           "
         >
-          <svg width="100%" height="100%" viewBox="-125 -125 250 250" preserveAspectRatio="xMidYMid meet">
-            {/* SVG content will be managed by D3 */}
+          <svg width="50%" height="50%" viewBox="-125 -125 250 250" preserveAspectRatio="xMidYMid meet">
           </svg>
         </div>
       </div>
