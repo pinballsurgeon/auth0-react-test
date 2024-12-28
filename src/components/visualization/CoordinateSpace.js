@@ -320,6 +320,14 @@ const CoordinateSpace = () => {
             lg:w-128 lg:h-128
             flex justify-center items-center
           "
+          style={{ 
+          
+            width: '40%',
+            height: '40%',
+            minHeight: 0,
+            maxHeight: '70%',
+            aspectRatio: '1/1'
+          }}
         >
           <svg width="50%" height="50%" viewBox="-125 -125 250 250" preserveAspectRatio="xMidYMid meet">
           </svg>
