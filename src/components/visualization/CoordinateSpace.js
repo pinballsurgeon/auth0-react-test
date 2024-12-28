@@ -311,7 +311,7 @@ const CoordinateSpace = () => {
         ref={d3Container}
         className="w-full h-full bg-gray-900 overflow-hidden"
         style={{ 
-          position: absolute,
+          position: 'absolute',
           top: '50%',
           left: '50%',
           width: '40%',
