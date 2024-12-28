@@ -302,25 +302,35 @@ const CoordinateSpace = () => {
     };
   }, []);
 
+  // In your CoordinateSpace.js
   return (
     <VisualizationLayout
-      header={<Header />}
-      controls={<Controls />}
+      header={<Header searchInput={searchInput} setSearchInput={setSearchInput} handleVisualize={handleVisualize} />}
+      controls={<Controls config={config} setConfig={setConfig} />}
     >
-      <div 
-        ref={d3Container}
-        className="w-full h-full bg-gray-900 overflow-hidden"
-        style={{ 
-          
-          width: '40%',
-          height: '40%',
-          minHeight: 0,
-          maxHeight: '70%',
-          aspectRatio: '1/1'
-        }}
-      />
+      {/* Full-Screen Centering Wrapper */}
+      <div className="flex justify-center items-center w-full h-full">
+        <div
+          ref={d3Container}
+          className="
+            bg-gray-900 overflow-hidden 
+            w-96 h-96 
+            sm:w-80 sm:h-80 
+            md:w-96 md:h-96 
+            lg:w-128 lg:h-128
+            flex justify-center items-center
+          "
+        >
+          <svg width="100%" height="100%" viewBox="-125 -125 250 250" preserveAspectRatio="xMidYMid meet">
+            {/* SVG content will be managed by D3 */}
+          </svg>
+        </div>
+      </div>
     </VisualizationLayout>
   );
+
+
+
 };
 
 export default CoordinateSpace;
