@@ -1,14 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const CoordinateIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 3v18h18"></path>
-    <circle cx="8" cy="16" r="2"></circle>
-    <circle cx="12" cy="10" r="2"></circle>
-    <circle cx="16" cy="14" r="2"></circle>
-  </svg>
-);
+// Import icons from lucide-react
+import { Coordinate, BoxSelect, Network2, Code2, TerminalSquare } from 'lucide-react';
 
 const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false }) => (
   <Link 
@@ -31,33 +25,91 @@ const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false 
   </Link>
 );
 
+const DevPanel = ({ isVisible }) => {
+  const [selectedTest, setSelectedTest] = useState('domain');
+  const [logs, setLogs] = useState([]);
+  
+  if (!isVisible) return null;
+  
+  return (
+    <div className="mb-12 p-6 bg-gray-900 rounded-xl text-white">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Developer Console</h2>
+        <button 
+          onClick={() => setLogs([])}
+          className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+        >
+          Clear Logs
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Test Controls */}
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Test Controls</h3>
+          <div className="space-y-4">
+            <select 
+              value={selectedTest}
+              onChange={(e) => setSelectedTest(e.target.value)}
+              className="w-full p-2 bg-gray-700 rounded text-white"
+            >
+              <option value="domain">Domain Generation</option>
+              <option value="attributes">Attribute Generation</option>
+              <option value="pca">PCA Calculation</option>
+              <option value="images">Image Service</option>
+            </select>
+            
+            <input 
+              type="text" 
+              placeholder="Test input..."
+              className="w-full p-2 bg-gray-700 rounded"
+            />
+            
+            <button className="w-full p-2 bg-green-600 rounded hover:bg-green-700">
+              Run Test
+            </button>
+          </div>
+        </div>
+        
+        {/* Log Output */}
+        <div className="lg:col-span-2 bg-gray-800 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Test Output</h3>
+          <div className="h-64 bg-gray-900 rounded p-4 font-mono text-sm overflow-auto">
+            {logs.length === 0 ? (
+              <div className="text-gray-500">No logs yet... Run a test to see output.</div>
+            ) : (
+              logs.map((log, i) => (
+                <div key={i} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+                  {log.message}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const FeatureDashboard = () => {
+  const [devMode, setDevMode] = useState(false);
+  
   const features = [
     {
-      icon: CoordinateIcon,
+      icon: Coordinate,
       title: "3D Coordinate Space",
       description: "Interactive 3D coordinate visualization with customizable points and transformations",
       path: "/coordinate-space"
     },
     {
-      icon: () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="16"></line>
-          <line x1="8" y1="12" x2="16" y2="12"></line>
-        </svg>
-      ),
+      icon: BoxSelect,
       title: "Point Cloud Visualization",
       description: "Visualize and analyze large sets of 3D points with clustering and patterns",
       path: "/point-cloud",
       comingSoon: true
     },
     {
-      icon: () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 3l18 18M3 21l18-18"></path>
-        </svg>
-      ),
+      icon: Network2,
       title: "Vector Field Analysis",
       description: "Explore and visualize 3D vector fields and their properties",
       path: "/vector-field",
@@ -67,13 +119,26 @@ const FeatureDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">3D Data Visualization Tools</h1>
+      <div className="text-center mb-8">
+        <div className="flex justify-center items-center gap-4 mb-4">
+          <h1 className="text-4xl font-bold">3D Data Visualization Tools</h1>
+          <button
+            onClick={() => setDevMode(!devMode)}
+            className="flex items-center gap-2 px-3 py-1 bg-gray-800 text-white rounded-full text-sm hover:bg-gray-700"
+          >
+            <Code2 size={16} />
+            {devMode ? 'Hide Dev Tools' : 'Show Dev Tools'}
+          </button>
+        </div>
         <p className="text-xl text-gray-600">
           Explore and analyze data in three-dimensional space
         </p>
       </div>
       
+      {/* Developer Panel */}
+      <DevPanel isVisible={devMode} />
+      
+      {/* Feature Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {features.map((feature, index) => (
           <FeatureTile key={index} {...feature} />
