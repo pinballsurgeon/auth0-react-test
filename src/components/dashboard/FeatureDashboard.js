@@ -1,8 +1,37 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-// Import icons from lucide-react
-import { Coordinate, BoxSelect, Network2, Code2, TerminalSquare } from 'lucide-react';
+// Simple SVG icons as components
+const CoordinateIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18"></path>
+    <circle cx="8" cy="16" r="2"></circle>
+    <circle cx="12" cy="10" r="2"></circle>
+    <circle cx="16" cy="14" r="2"></circle>
+  </svg>
+);
+
+const BoxIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"></path>
+    <path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"></path>
+    <rect x="3" y="8" width="18" height="8"></rect>
+  </svg>
+);
+
+const NetworkIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M2 12h3m14 0h3M12 2v3m0 14v3"></path>
+  </svg>
+);
+
+const CodeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6"></polyline>
+    <polyline points="8 6 2 12 8 18"></polyline>
+  </svg>
+);
 
 const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false }) => (
   <Link 
@@ -96,20 +125,20 @@ const FeatureDashboard = () => {
   
   const features = [
     {
-      icon: Coordinate,
+      icon: CoordinateIcon,
       title: "3D Coordinate Space",
       description: "Interactive 3D coordinate visualization with customizable points and transformations",
       path: "/coordinate-space"
     },
     {
-      icon: BoxSelect,
+      icon: BoxIcon,
       title: "Point Cloud Visualization",
       description: "Visualize and analyze large sets of 3D points with clustering and patterns",
       path: "/point-cloud",
       comingSoon: true
     },
     {
-      icon: Network2,
+      icon: NetworkIcon,
       title: "Vector Field Analysis",
       description: "Explore and visualize 3D vector fields and their properties",
       path: "/vector-field",
@@ -126,7 +155,7 @@ const FeatureDashboard = () => {
             onClick={() => setDevMode(!devMode)}
             className="flex items-center gap-2 px-3 py-1 bg-gray-800 text-white rounded-full text-sm hover:bg-gray-700"
           >
-            <Code2 size={16} />
+            <CodeIcon />
             {devMode ? 'Hide Dev Tools' : 'Show Dev Tools'}
           </button>
         </div>
