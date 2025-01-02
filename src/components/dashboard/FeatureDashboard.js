@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { generateDomainItems } from '../../services/devPanelService';
 
 // Simple SVG icons as components
 const CoordinateIcon = () => (
@@ -57,6 +58,51 @@ const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false 
 const DevPanel = ({ isVisible }) => {
   const [selectedTest, setSelectedTest] = useState('domain');
   const [logs, setLogs] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const addLog = (message, type = 'info') => {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
+  };
+
+  const runDomainTest = async () => {
+    if (!input.trim()) {
+      addLog('Please enter a domain to test', 'error');
+      return;
+    }
+
+    setLoading(true);
+    addLog(`Starting domain generation test for: ${input}`);
+    
+    try {
+      const result = await generateDomainItems(input);
+      
+      if (result.success) {
+        addLog(`Found ${result.items.length} items in domain`);
+        addLog('Sample items: ' + result.items.slice(0, 5).join(', '));
+        addLog('Raw response:', 'debug');
+        addLog(result.raw, 'debug');
+      } else {
+        addLog(`Error: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      addLog(`Test failed: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runTest = async () => {
+    switch (selectedTest) {
+      case 'domain':
+        await runDomainTest();
+        break;
+      // We'll add other test cases here later
+      default:
+        addLog(`Test type ${selectedTest} not implemented yet`, 'error');
+    }
+  };
   
   if (!isVisible) return null;
   
@@ -64,12 +110,19 @@ const DevPanel = ({ isVisible }) => {
     <div className="mb-12 p-6 bg-gray-900 rounded-xl text-white">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Developer Console</h2>
-        <button 
-          onClick={() => setLogs([])}
-          className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
-        >
-          Clear Logs
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setLogs([])}
+            className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+          >
+            Clear Logs
+          </button>
+          {loading && (
+            <div className="px-4 py-2 bg-yellow-600 rounded">
+              Running Test...
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -90,12 +143,18 @@ const DevPanel = ({ isVisible }) => {
             
             <input 
               type="text" 
-              placeholder="Test input..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={selectedTest === 'domain' ? 'Enter domain (e.g., "fruits")' : 'Test input...'}
               className="w-full p-2 bg-gray-700 rounded"
             />
             
-            <button className="w-full p-2 bg-green-600 rounded hover:bg-green-700">
-              Run Test
+            <button 
+              className="w-full p-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={runTest}
+              disabled={loading || !input.trim()}
+            >
+              {loading ? 'Running...' : 'Run Test'}
             </button>
           </div>
         </div>
@@ -108,7 +167,14 @@ const DevPanel = ({ isVisible }) => {
               <div className="text-gray-500">No logs yet... Run a test to see output.</div>
             ) : (
               logs.map((log, i) => (
-                <div key={i} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+                <div 
+                  key={i} 
+                  className={`mb-1 ${
+                    log.type === 'error' ? 'text-red-400' : 
+                    log.type === 'debug' ? 'text-gray-400' : 
+                    'text-green-400'
+                  }`}
+                >
                   {log.message}
                 </div>
               ))
