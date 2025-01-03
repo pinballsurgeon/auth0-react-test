@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { generateDomainItems } from '../../services/devPanelService';
+import { testGCPConnection } from '../../services/gcpService'; 
 
 // Simple SVG icons as components
 const CoordinateIcon = () => (
