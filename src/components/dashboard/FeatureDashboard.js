@@ -159,6 +159,29 @@ const DevPanel = ({ isVisible }) => {
           </div>
         </div>
         
+        <div className="mt-6 pt-4 border-t border-gray-700">
+          <h4 className="text-sm font-medium text-gray-400 mb-2">Backend Connection Test</h4>
+          <button 
+            onClick={async () => {
+              addLog('Testing GCP connection...');
+              const result = await testGCPConnection();
+              if (result.success) {
+                addLog(`Connection successful! ID: ${result.data.connectionId}`);
+                addLog(`Server time: ${result.data.serverTimestamp}`, 'debug');
+                addLog(`Round trip: ${new Date(result.timestamp) - new Date(result.data.requestTimestamp)}ms`, 'debug');
+              } else {
+                addLog(`Connection failed: ${result.error}`, 'error');
+              }
+            }}
+            className="w-full p-2 bg-purple-600 rounded hover:bg-purple-700"
+            disabled={loading}
+          >
+            Test GCP Connection
+          </button>
+        </div>
+      
+
+
         {/* Log Output */}
         <div className="lg:col-span-2 bg-gray-800 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-4">Test Output</h3>
