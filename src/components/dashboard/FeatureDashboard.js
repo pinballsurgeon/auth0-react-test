@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { generateDomainItems } from '../../services/devPanelService';
+// import { generateDomainItems } from '../../services/devPanelService';
 import { MODELS } from '../../services/llmProvider';
 import { testGCPConnection } from '../../services/gcpService'; 
 
@@ -73,9 +73,7 @@ const DevPanel = ({ isVisible }) => {
     addLog(`Testing domain: ${domain} with model: ${selectedModel}`);
     
     const result = await generateDomainItems(domain, selectedModel);
-    
-    if (result.success) addLog(JSON.stringify(result.data, null, 2));
-    else addLog(`Error: ${result.error}`, 'error');
+    addLog(JSON.stringify(result, null, 2));
     
     setLoading(false);
   };

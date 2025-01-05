@@ -8,21 +8,13 @@ export const MODELS = {
   GEMINI: 'gemini-pro'
 };
 
-export const generateText = async (domain, model = MODELS.GPT35) => {
-  try {
-    const response = await fetch(GCP_FUNCTION_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        domain,
-        model,
-        instruction: 'List as many items as you can think of in this domain'
-      })
-    });
+export const generateDomainItems = async (domain, model = MODELS.GPT35) => {
+  const response = await fetch(GCP_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ domain, model })
+  });
 
-    const data = await response.json();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  const data = await response.json();
+  return data;  // Return whatever the cloud function sends
 };
