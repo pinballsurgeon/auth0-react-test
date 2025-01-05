@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { generateDomainItems, MODELS } from '../../services/devPanelService';
+import { generateDomainItems } from '../../services/devPanelService';
+import { MODELS } from '../../services/llmProvider';
 import { testGCPConnection } from '../../services/gcpService'; 
 
 // Simple SVG icons as components
