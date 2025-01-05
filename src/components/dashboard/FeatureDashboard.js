@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-// import { generateDomainItems } from '../../services/devPanelService';
 import { generateDomainItems, MODELS } from '../../services/llmProvider';
 import { testGCPConnection } from '../../services/gcpService'; 
 
