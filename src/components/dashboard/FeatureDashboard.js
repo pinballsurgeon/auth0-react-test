@@ -74,8 +74,8 @@ const DevPanel = ({ isVisible }) => {
     
     const result = await generateDomainItems(domain, selectedModel);
     
-    // if (result.success) addLog(JSON.stringify(result.data, null, 2));
-    // else addLog(`Error: ${result.error}`, 'error');
+    if (result.success) addLog(JSON.stringify(result.data, null, 2));
+    else addLog(`Error: ${result.error}`, 'error');
     
     setLoading(false);
   };
