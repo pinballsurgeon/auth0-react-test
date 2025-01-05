@@ -8,7 +8,7 @@ export const MODELS = {
   GEMINI: 'gemini-pro'
 };
 
-export const generateDomainItems = async (domain, model = MODELS.GPT35) => {
+export const generateText = async (domain, model = MODELS.GPT35) => {
   try {
     const response = await fetch(GCP_FUNCTION_URL, {
       method: 'POST',
