@@ -57,52 +57,21 @@ const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false 
 );
 
 const DevPanel = ({ isVisible }) => {
-  const [selectedTest, setSelectedTest] = useState('domain');
+  const [selectedModel, setSelectedModel] = useState(MODELS.GPT35);
+  const [domain, setDomain] = useState('');
   const [logs, setLogs] = useState([]);
-  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const addLog = (message, type = 'info') => {
-    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
-    setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
-  };
-
-  const runDomainTest = async () => {
-    if (!input.trim()) {
-      addLog('Please enter a domain to test', 'error');
-      return;
-    }
-
-    setLoading(true);
-    addLog(`Starting domain generation test for: ${input}`);
-    
-    try {
-      const result = await generateDomainItems(input);
-      
-      if (result.success) {
-        addLog(`Found ${result.items.length} items in domain`);
-        addLog('Sample items: ' + result.items.slice(0, 5).join(', '));
-        addLog('Raw response:', 'debug');
-        addLog(result.raw, 'debug');
-      } else {
-        addLog(`Error: ${result.error}`, 'error');
-      }
-    } catch (error) {
-      addLog(`Test failed: ${error.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const runTest = async () => {
-    switch (selectedTest) {
-      case 'domain':
-        await runDomainTest();
-        break;
-      // We'll add other test cases here later
-      default:
-        addLog(`Test type ${selectedTest} not implemented yet`, 'error');
-    }
+    setLoading(true);
+    addLog(`Testing domain: ${domain} with model: ${selectedModel}`);
+    
+    const result = await generateDomainItems(domain, selectedModel);
+    
+    if (result.success) addLog(JSON.stringify(result.data, null, 2));
+    else addLog(`Error: ${result.error}`, 'error');
+    
+    setLoading(false);
   };
   
   if (!isVisible) return null;
