@@ -100,31 +100,44 @@ const DevPanel = ({ isVisible }) => {
         <div className="bg-gray-800 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-4">Test Controls</h3>
           <div className="space-y-4">
-            <select 
-              value={selectedTest}
-              onChange={(e) => setSelectedTest(e.target.value)}
-              className="w-full p-2 bg-gray-700 rounded text-white"
-            >
-              <option value="domain">Domain Generation</option>
-              <option value="attributes">Attribute Generation</option>
-              <option value="pca">PCA Calculation</option>
-              <option value="images">Image Service</option>
-            </select>
+            {/* Model Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Select Model
+              </label>
+              <select 
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full p-2 bg-gray-700 rounded text-white"
+              >
+                <option value={MODELS.GPT35}>GPT-3.5</option>
+                <option value={MODELS.GPT4}>GPT-4</option>
+                <option value={MODELS.CLAUDE}>Claude</option>
+                <option value={MODELS.GEMINI}>Gemini</option>
+              </select>
+            </div>
             
-            <input 
-              type="text" 
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={selectedTest === 'domain' ? 'Enter domain (e.g., "fruits")' : 'Test input...'}
-              className="w-full p-2 bg-gray-700 rounded"
-            />
+            {/* Domain Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Enter Domain
+              </label>
+              <input 
+                type="text" 
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder="e.g., fruits, cars, programming languages"
+                className="w-full p-2 bg-gray-700 rounded text-white"
+              />
+            </div>
             
+            {/* Run Button */}
             <button 
-              className="w-full p-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={runTest}
-              disabled={loading || !input.trim()}
+              disabled={loading || !domain.trim()}
+              className="w-full p-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Running...' : 'Run Test'}
+              {loading ? 'Running Test...' : 'Run Domain Test'}
             </button>
           </div>
         </div>
