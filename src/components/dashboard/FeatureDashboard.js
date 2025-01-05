@@ -64,12 +64,12 @@ const DevPanel = ({ isVisible }) => {
 
   const runTest = async () => {
     setLoading(true);
-    addLog(`Testing domain: ${domain} with model: ${selectedModel}`);
+    // addLog(`Testing domain: ${domain} with model: ${selectedModel}`);
     
     const result = await generateDomainItems(domain, selectedModel);
     
-    if (result.success) addLog(JSON.stringify(result.data, null, 2));
-    else addLog(`Error: ${result.error}`, 'error');
+    // if (result.success) // addLog(JSON.stringify(result.data, null, 2));
+    // else // addLog(`Error: ${result.error}`, 'error');
     
     setLoading(false);
   };
@@ -146,14 +146,14 @@ const DevPanel = ({ isVisible }) => {
           <h4 className="text-sm font-medium text-gray-400 mb-2">Backend Connection Test</h4>
           <button 
             onClick={async () => {
-              addLog('Testing GCP connection...');
+              // addLog('Testing GCP connection...');
               const result = await testGCPConnection();
               if (result.success) {
-                addLog(`Connection successful! ID: ${result.data.connectionId}`);
-                addLog(`Server time: ${result.data.serverTimestamp}`, 'debug');
-                addLog(`Round trip: ${new Date(result.timestamp) - new Date(result.data.requestTimestamp)}ms`, 'debug');
+                // addLog(`Connection successful! ID: ${result.data.connectionId}`);
+                // addLog(`Server time: ${result.data.serverTimestamp}`, 'debug');
+                // addLog(`Round trip: ${new Date(result.timestamp) - new Date(result.data.requestTimestamp)}ms`, 'debug');
               } else {
-                addLog(`Connection failed: ${result.error}`, 'error');
+                // addLog(`Connection failed: ${result.error}`, 'error');
               }
             }}
             className="w-full p-2 bg-purple-600 rounded hover:bg-purple-700"
