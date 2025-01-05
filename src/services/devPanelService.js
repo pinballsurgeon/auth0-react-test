@@ -2,7 +2,7 @@
 
 import { generateText, LLM_PROVIDERS } from './llmProvider';
 
-export const generateDomainItems = async (domain, model = LLM_PROVIDERS.GPT3) => {
+export const generateDomainItems = async (domain, model = MODELS.GPT35) => {
   try {
     const prompt = `List as many items as you can think of in the domain of ${domain}. 
                    Format the response as a comma-separated list.`;
