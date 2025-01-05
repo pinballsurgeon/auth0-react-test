@@ -63,14 +63,46 @@ const DevPanel = ({ isVisible }) => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const addLog = (message, type = 'info') => {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
+  };
+
+  const runDomainTest = async () => {
+    if (!input.trim()) {
+      addLog('Please enter a domain to test', 'error');
+      return;
+    }
+
+    setLoading(true);
+    addLog(`Starting domain generation test for: ${input}`);
+    
+    try {
+      const result = await generateDomainItems(input);
+      
+      if (result.success) {
+        addLog(`Found ${result.items.length} items in domain`);
+        addLog('Sample items: ' + result.items.slice(0, 5).join(', '));
+        addLog('Raw response:', 'debug');
+        addLog(result.raw, 'debug');
+      } else {
+        addLog(`Error: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      addLog(`Test failed: ${error.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const runTest = async () => {
     setLoading(true);
-    // addLog(`Testing domain: ${domain} with model: ${selectedModel}`);
+    addLog(`Testing domain: ${domain} with model: ${selectedModel}`);
     
     const result = await generateDomainItems(domain, selectedModel);
     
-    // if (result.success) // addLog(JSON.stringify(result.data, null, 2));
-    // else // addLog(`Error: ${result.error}`, 'error');
+    // if (result.success) addLog(JSON.stringify(result.data, null, 2));
+    // else addLog(`Error: ${result.error}`, 'error');
     
     setLoading(false);
   };
@@ -147,14 +179,14 @@ const DevPanel = ({ isVisible }) => {
           <h4 className="text-sm font-medium text-gray-400 mb-2">Backend Connection Test</h4>
           <button 
             onClick={async () => {
-              // addLog('Testing GCP connection...');
+              addLog('Testing GCP connection...');
               const result = await testGCPConnection();
               if (result.success) {
-                // addLog(`Connection successful! ID: ${result.data.connectionId}`);
-                // addLog(`Server time: ${result.data.serverTimestamp}`, 'debug');
-                // addLog(`Round trip: ${new Date(result.timestamp) - new Date(result.data.requestTimestamp)}ms`, 'debug');
+                addLog(`Connection successful! ID: ${result.data.connectionId}`);
+                addLog(`Server time: ${result.data.serverTimestamp}`, 'debug');
+                addLog(`Round trip: ${new Date(result.timestamp) - new Date(result.data.requestTimestamp)}ms`, 'debug');
               } else {
-                // addLog(`Connection failed: ${result.error}`, 'error');
+                addLog(`Connection failed: ${result.error}`, 'error');
               }
             }}
             className="w-full p-2 bg-purple-600 rounded hover:bg-purple-700"
