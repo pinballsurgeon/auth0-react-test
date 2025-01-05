@@ -1,6 +1,6 @@
 // src/services/devPanelService.js
 
-import { generateText, LLM_PROVIDERS } from './llmProvider';
+import { generateText, MODELS } from './llmProvider';
 
 export const generateDomainItems = async (domain, model = MODELS.GPT35) => {
   try {
