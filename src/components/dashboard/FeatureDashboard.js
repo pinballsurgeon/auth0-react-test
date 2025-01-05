@@ -68,33 +68,6 @@ const DevPanel = ({ isVisible }) => {
     setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
   };
 
-  const runDomainTest = async () => {
-    if (!input.trim()) {
-      addLog('Please enter a domain to test', 'error');
-      return;
-    }
-
-    setLoading(true);
-    addLog(`Starting domain generation test for: ${input}`);
-    
-    try {
-      const result = await generateDomainItems(input);
-      
-      if (result.success) {
-        addLog(`Found ${result.items.length} items in domain`);
-        addLog('Sample items: ' + result.items.slice(0, 5).join(', '));
-        addLog('Raw response:', 'debug');
-        addLog(result.raw, 'debug');
-      } else {
-        addLog(`Error: ${result.error}`, 'error');
-      }
-    } catch (error) {
-      addLog(`Test failed: ${error.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const runTest = async () => {
     setLoading(true);
     addLog(`Testing domain: ${domain} with model: ${selectedModel}`);
