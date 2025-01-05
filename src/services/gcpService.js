@@ -2,7 +2,8 @@
 
 export const testGCPConnection = async () => {
     try {
-      const response = await fetch(process.env.REACT_APP_GCP_FUNCTION_URL, {
+      // const response = await fetch(process.env.REACT_APP_GCP_FUNCTION_URL, {
+      const response = await fetch("https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-server-2", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
