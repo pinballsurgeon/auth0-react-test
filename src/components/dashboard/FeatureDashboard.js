@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { Link } from 'react-router-dom';
@@ -57,6 +56,190 @@ const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false 
     )}
   </Link>
 );
+
+
+const DevPanel = ({ isVisible }) => {
+  const [selectedModel, setSelectedModel] = useState(MODELS.GPT35);
+  const [domain, setDomain] = useState('');
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [aiText, setAiText] = useState('');
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState(null);
+  const logEndRef = useRef(null);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
+
+  const addLog = (message, type = 'info') => {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
+  };
+
+  const runTest = async () => {
+    setLoading(true);
+    setError(null);
+    setAiText('');
+    setItems([]);
+    addLog(`Starting streaming test: "${domain}" with model: "${selectedModel}"`);
+
+    try {
+      // Use the streaming version of generateDomainItems
+      await generateDomainItemsStream(
+        domain, 
+        selectedModel,
+        (chunk) => {
+          // Update AI text with new chunks
+          setAiText(prev => prev + chunk);
+          
+          // Log each chunk received
+          addLog(`Received chunk: ${chunk.length} characters`, 'debug');
+        }
+      );
+      
+      addLog('Stream completed successfully', 'success');
+    } catch (err) {
+      setError(err.message);
+      addLog(`Error: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="mb-12 p-6 bg-gray-900 rounded-xl text-white">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Developer Console</h2>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { setLogs([]); setAiText(''); setItems([]); setError(null); }}
+            className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+          >
+            Clear Logs & Results
+          </button>
+          {loading && (
+            <div className="px-4 py-2 bg-yellow-600 rounded animate-pulse">
+              Streaming...
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Test Controls */}
+        <div className="bg-gray-800 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Test Controls</h3>
+          <div className="space-y-4">
+            {/* Model Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Select Model
+              </label>
+              <select 
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full p-2 bg-gray-700 rounded text-white"
+              >
+                <option value={MODELS.GPT35}>GPT-3.5</option>
+                <option value={MODELS.GPT4}>GPT-4</option>
+                <option value={MODELS.CLAUDE}>Claude</option>
+                <option value={MODELS.GEMINI}>Gemini</option>
+              </select>
+            </div>
+            
+            {/* Domain Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Enter Domain
+              </label>
+              <input 
+                type="text" 
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder="e.g., fruits, cars, programming languages"
+                className="w-full p-2 bg-gray-700 rounded text-white"
+              />
+            </div>
+            
+            {/* Run Button */}
+            <button 
+              onClick={runTest}
+              disabled={loading || !domain.trim()}
+              className="w-full p-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Streaming...' : 'Run Domain Test'}
+            </button>
+          </div>
+        </div>
+
+        {/* Log Output and Results */}
+        <div className="lg:col-span-2 bg-gray-800 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Test Output</h3>
+          
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-600 rounded">
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+          
+          {/* Streaming AI Text Output */}
+          {(aiText || loading) && (
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-md font-semibold">
+                  AI Output {loading && <span className="text-yellow-400">(Streaming...)</span>}
+                </h4>
+                <button 
+                  onClick={() => navigator.clipboard.writeText(aiText)}
+                  className="text-sm text-blue-400 hover:underline"
+                >
+                  Copy
+                </button>
+              </div>
+              <div className="p-3 bg-gray-700 rounded text-white whitespace-pre-wrap">
+                {aiText}
+                {loading && <span className="animate-pulse">▌</span>}
+              </div>
+            </div>
+          )}
+          
+          {/* Log Output */}
+          <div className="h-64 bg-gray-900 rounded p-4 font-mono text-sm overflow-auto">
+            {logs.length === 0 ? (
+              <div className="text-gray-500">No logs yet... Run a test to see output.</div>
+            ) : (
+              <>
+                {logs.map((log, i) => (
+                  <div 
+                    key={i} 
+                    className={`mb-1 ${
+                      log.type === 'error' ? 'text-red-400' : 
+                      log.type === 'debug' ? 'text-gray-400' : 
+                      log.type === 'success' ? 'text-green-400' :
+                      'text-blue-400'
+                    }`}
+                  >
+                    {log.message}
+                  </div>
+                ))}
+                <div ref={logEndRef} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// export default DevPanel;
 
 const FeatureDashboard = () => {
   const [devMode, setDevMode] = useState(false);
