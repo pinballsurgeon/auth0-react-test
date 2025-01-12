@@ -12,7 +12,9 @@ export const MODELS = {
 export const generateDomainItems = async (domain, model = MODELS.GPT35) => {
   try {
 
-    let domain = "Return just a list of lowercase, comma seperated list of domain members, as many as you can list out, no other explanation or details just an enormous all encompassing list of all members in the supplied domain, the domain requiring member listing is - sports" + domain;
+    const domain_sub = "Return just a list of lowercase, comma seperated list of domain members, as many as you can list out, no other explanation or details just an enormous all encompassing list of all members in the supplied domain, the domain requiring member listing is - sports" + domain;
+
+    let domain = domain_sub;
 
     const response = await fetch(GCP_FUNCTION_URL, {
       method: 'POST',
