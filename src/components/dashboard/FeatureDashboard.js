@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { Link } from 'react-router-dom';
@@ -56,9 +57,6 @@ const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false 
     )}
   </Link>
 );
-
-import React, { useState, useRef, useEffect } from 'react';
-import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 
 const FeatureDashboard = () => {
   const [devMode, setDevMode] = useState(false);
