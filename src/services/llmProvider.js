@@ -28,17 +28,15 @@ export const generateDomainItemsStream = async (domain, model = MODELS.GEMINI, o
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let fullText = '';
   
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
   
-        // Decode the chunk and add it to our buffer
         buffer += decoder.decode(value, { stream: true });
-  
-        // Process complete SSE messages
         const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || '';
   
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -46,6 +44,9 @@ export const generateDomainItemsStream = async (domain, model = MODELS.GEMINI, o
               const data = JSON.parse(line.slice(6));
               
               if (data === '[DONE]') {
+                // Process the full text into an array if needed
+                const items = fullText.split(',').map(item => item.trim()).filter(Boolean);
+                onChunk('\n\nTotal items: ' + items.length);
                 return;
               }
               
@@ -54,6 +55,7 @@ export const generateDomainItemsStream = async (domain, model = MODELS.GEMINI, o
               }
               
               if (data.chunk) {
+                fullText += data.chunk;
                 onChunk(data.chunk);
               }
             } catch (e) {

@@ -85,23 +85,26 @@ const DevPanel = ({ isVisible }) => {
     setError(null);
     setAiText('');
     setItems([]);
-    addLog(`Starting streaming test: "${domain}" with model: "${selectedModel}"`);
+    addLog(`Starting domain list generation for: "${domain}"`);
 
     try {
-      // Use the streaming version of generateDomainItems
+      let chunkCount = 0;
       await generateDomainItemsStream(
         domain, 
         selectedModel,
         (chunk) => {
-          // Update AI text with new chunks
+          chunkCount++;
           setAiText(prev => prev + chunk);
-          
-          // Log each chunk received
-          addLog(`Received chunk: ${chunk.length} characters`, 'debug');
+          if (chunkCount % 5 === 0) { // Log every 5 chunks to avoid spam
+            addLog(`Received chunk #${chunkCount}`, 'debug');
+          }
         }
       );
       
-      addLog('Stream completed successfully', 'success');
+      // Process the final text into items
+      const finalItems = aiText.split(',').map(item => item.trim()).filter(Boolean);
+      setItems(finalItems);
+      addLog(`Generated ${finalItems.length} items`, 'success');
     } catch (err) {
       setError(err.message);
       addLog(`Error: ${err.message}`, 'error');
