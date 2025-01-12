@@ -26,6 +26,7 @@ export const generateDomainItems = async (domain, model = MODELS.GPT35) => {
 
     const data = await response.json();
     return data;  // Return the structured data
+    
   } catch (error) {
     // Handle network or parsing errors
     console.error('Error in generateDomainItems:', error);
