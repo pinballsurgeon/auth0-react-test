@@ -3,6 +3,9 @@ import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { Link } from 'react-router-dom';
 //import { generateDomainItems, MODELS } from '../../services/llmProvider';
 import { testGCPConnection } from '../../services/gcpService'; 
+import { BatchProcessor } from '../../services/batchProcessor';
+import BatchDisplay from '../../components/BatchDisplay';
+
 
 // Simple SVG icons as components
 const CoordinateIcon = () => (
@@ -65,6 +68,7 @@ const DevPanel = ({ isVisible }) => {
   const [loading, setLoading] = useState(false);
   const [batches, setBatches] = useState([]);
   const [error, setError] = useState(null);
+  const [streamText, setStreamText] = useState('');
   const logEndRef = useRef(null);
 
   // Auto-scroll logs
@@ -87,6 +91,7 @@ const DevPanel = ({ isVisible }) => {
     setLoading(true);
     setError(null);
     setBatches([]);
+    setStreamText('');
     addLog(`Starting domain list generation for: "${domain}"`);
 
     const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
@@ -100,6 +105,7 @@ const DevPanel = ({ isVisible }) => {
             addLog(chunk.trim(), 'success');
             await batchProcessor.finalize();
           } else {
+            setStreamText(prev => prev + chunk);
             batchProcessor.processStreamChunk(chunk);
           }
         }
@@ -120,7 +126,12 @@ const DevPanel = ({ isVisible }) => {
         <h2 className="text-2xl font-bold">Developer Console</h2>
         <div className="flex gap-2">
           <button 
-            onClick={() => { setLogs([]); setAiText(''); setItems([]); setError(null); }}
+            onClick={() => { 
+              setLogs([]); 
+              setStreamText(''); 
+              setBatches([]); 
+              setError(null); 
+            }}
             className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
           >
             Clear Logs & Results
@@ -181,9 +192,7 @@ const DevPanel = ({ isVisible }) => {
         </div>
 
         {/* Log Output and Results */}
-        <div className="lg:col-span-2 bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Test Output</h3>
-          
+        <div className="lg:col-span-2 space-y-4">
           {/* Error Display */}
           {error && (
             <div className="mb-4 p-3 bg-red-600 rounded">
@@ -191,59 +200,61 @@ const DevPanel = ({ isVisible }) => {
             </div>
           )}
           
-          {/* Batch Results Display */}
-          <BatchDisplay batches={batches} />
-
-          {/* Streaming AI Text Output */}
-          {(aiText || loading) && (
+          {/* Stream Text Display */}
+          {(streamText || loading) && (
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
                 <h4 className="text-md font-semibold">
-                  AI Output {loading && <span className="text-yellow-400">(Streaming...)</span>}
+                  Stream Output {loading && <span className="text-yellow-400">(Streaming...)</span>}
                 </h4>
                 <button 
-                  onClick={() => navigator.clipboard.writeText(aiText)}
+                  onClick={() => navigator.clipboard.writeText(streamText)}
                   className="text-sm text-blue-400 hover:underline"
                 >
                   Copy
                 </button>
               </div>
               <div className="p-3 bg-gray-700 rounded text-white whitespace-pre-wrap">
-                {aiText}
+                {streamText}
                 {loading && <span className="animate-pulse">▌</span>}
               </div>
             </div>
           )}
           
+          {/* Batch Results Display */}
+          <BatchDisplay batches={batches} />
+          
           {/* Log Output */}
-          <div className="h-64 bg-gray-900 rounded p-4 font-mono text-sm overflow-auto">
-            {logs.length === 0 ? (
-              <div className="text-gray-500">No logs yet... Run a test to see output.</div>
-            ) : (
-              <>
-                {logs.map((log, i) => (
-                  <div 
-                    key={i} 
-                    className={`mb-1 ${
-                      log.type === 'error' ? 'text-red-400' : 
-                      log.type === 'debug' ? 'text-gray-400' : 
-                      log.type === 'success' ? 'text-green-400' :
-                      'text-blue-400'
-                    }`}
-                  >
-                    {log.message}
-                  </div>
-                ))}
-                <div ref={logEndRef} />
-              </>
-            )}
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">Processing Logs</h3>
+            <div className="h-64 bg-gray-900 rounded p-4 font-mono text-sm overflow-auto">
+              {logs.length === 0 ? (
+                <div className="text-gray-500">No logs yet... Run a test to see output.</div>
+              ) : (
+                <>
+                  {logs.map((log, i) => (
+                    <div 
+                      key={i} 
+                      className={`mb-1 ${
+                        log.type === 'error' ? 'text-red-400' : 
+                        log.type === 'debug' ? 'text-gray-400' : 
+                        log.type === 'success' ? 'text-green-400' :
+                        'text-blue-400'
+                      }`}
+                    >
+                      {log.message}
+                    </div>
+                  ))}
+                  <div ref={logEndRef} />
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
 // export default DevPanel;
 
 const FeatureDashboard = () => {
