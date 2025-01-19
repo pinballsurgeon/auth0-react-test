@@ -63,8 +63,7 @@ const DevPanel = ({ isVisible }) => {
   const [domain, setDomain] = useState('');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [aiText, setAiText] = useState('');
-  const [items, setItems] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [error, setError] = useState(null);
   const logEndRef = useRef(null);
 
@@ -80,31 +79,31 @@ const DevPanel = ({ isVisible }) => {
     setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
   };
 
+  const handleBatchProcessed = (batchResult) => {
+    setBatches(prev => [...prev, batchResult]);
+  };
+
   const runTest = async () => {
     setLoading(true);
     setError(null);
-    setAiText('');
-    setItems([]);
+    setBatches([]);
     addLog(`Starting domain list generation for: "${domain}"`);
 
+    const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
+
     try {
-      let chunkCount = 0;
       await generateDomainItemsStream(
         domain, 
         selectedModel,
-        (chunk) => {
-          chunkCount++;
-          setAiText(prev => prev + chunk);
-          if (chunkCount % 5 === 0) { // Log every 5 chunks to avoid spam
-            addLog(`Received chunk #${chunkCount}`, 'debug');
+        async (chunk) => {
+          if (chunk.startsWith('\n\nTotal items:')) {
+            addLog(chunk.trim(), 'success');
+            await batchProcessor.finalize();
+          } else {
+            batchProcessor.processStreamChunk(chunk);
           }
         }
       );
-      
-      // Process the final text into items
-      const finalItems = aiText.split(',').map(item => item.trim()).filter(Boolean);
-      setItems(finalItems);
-      addLog(`Generated ${finalItems.length} items`, 'success');
     } catch (err) {
       setError(err.message);
       addLog(`Error: ${err.message}`, 'error');
@@ -192,6 +191,9 @@ const DevPanel = ({ isVisible }) => {
             </div>
           )}
           
+          {/* Batch Results Display */}
+          <BatchDisplay batches={batches} />
+
           {/* Streaming AI Text Output */}
           {(aiText || loading) && (
             <div className="mb-4">
