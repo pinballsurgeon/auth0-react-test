@@ -1,15 +1,21 @@
+// src/components/BatchDisplay.js
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 
 const BatchDisplay = ({ batches }) => {
+  if (!batches || batches.length === 0) return null;
+
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold mb-4">Processed Batches</h3>
       {batches.map((batch, batchIndex) => (
-        <Card key={batchIndex} className="bg-gray-800 border border-gray-700">
-          <CardContent className="p-4">
+        <div 
+          key={batchIndex} 
+          className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden"
+        >
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-300">
-                Batch #{batchIndex + 1}
+                Batch #{batch.batchNumber}
               </h3>
               <span className="text-xs text-gray-400">
                 {batch.items.length} items
@@ -41,14 +47,17 @@ const BatchDisplay = ({ batches }) => {
                   <span className="text-xs text-gray-300 text-center truncate w-full">
                     {item.text}
                   </span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    {item.fetchTime}ms
+                  </span>
                 </div>
               ))}
             </div>
             <div className="mt-2 text-xs text-gray-500">
-              Processed in: {batch.processingTime}ms
+              Batch processed in: {batch.processingTime}ms
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );
