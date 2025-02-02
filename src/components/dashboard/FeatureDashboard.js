@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { Link } from 'react-router-dom';
-//import { generateDomainItems, MODELS } from '../../services/llmProvider';
-import { testGCPConnection } from '../../services/gcpService'; 
 import { BatchProcessor } from '../../services/batchProcessor';
 import BatchDisplay from '../../components/BatchDisplay';
 
-
-// Simple SVG icons as components
+// ------------------------------------------
+// Simple SVG Icons as Components
+// ------------------------------------------
 const CoordinateIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 3v18h18"></path>
@@ -39,6 +38,29 @@ const CodeIcon = () => (
   </svg>
 );
 
+// ------------------------------------------
+// Reusable Collapsible Section Component
+// ------------------------------------------
+const CollapsibleSection = ({ title, defaultExpanded = true, children }) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <div className="bg-gray-800 rounded-lg mb-4">
+      <div 
+        className="cursor-pointer flex justify-between items-center p-4 border-b border-gray-700"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <span className="text-xl">{expanded ? '▾' : '▸'}</span>
+      </div>
+      {expanded && <div className="p-4">{children}</div>}
+    </div>
+  );
+};
+
+// ------------------------------------------
+// Feature Tile Component
+// ------------------------------------------
 const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false }) => (
   <Link 
     to={comingSoon ? '#' : path}
@@ -60,7 +82,9 @@ const FeatureTile = ({ icon: Icon, title, description, path, comingSoon = false 
   </Link>
 );
 
-
+// ------------------------------------------
+// Developer Panel with Collapsible Sections
+// ------------------------------------------
 const DevPanel = ({ isVisible }) => {
   const [selectedModel, setSelectedModel] = useState(MODELS.GPT35);
   const [domain, setDomain] = useState('');
@@ -92,6 +116,7 @@ const DevPanel = ({ isVisible }) => {
     setError(null);
     setBatches([]);
     setStreamText('');
+    setLogs([]);
     addLog(`Starting domain list generation for: "${domain}"`);
 
     const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
@@ -122,141 +147,123 @@ const DevPanel = ({ isVisible }) => {
 
   return (
     <div className="mb-12 p-6 bg-gray-900 rounded-xl text-white">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Developer Console</h2>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => { 
-              setLogs([]); 
-              setStreamText(''); 
-              setBatches([]); 
-              setError(null); 
-            }}
-            className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
-          >
-            Clear Logs & Results
-          </button>
-          {loading && (
-            <div className="px-4 py-2 bg-yellow-600 rounded animate-pulse">
-              Streaming...
-            </div>
-          )}
-        </div>
-      </div>
+      <h2 className="text-2xl font-bold mb-4">Developer Console</h2>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Test Controls */}
-        <div className="bg-gray-800 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Test Controls</h3>
-          <div className="space-y-4">
-            {/* Model Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Select Model
-              </label>
-              <select 
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full p-2 bg-gray-700 rounded text-white"
+      <CollapsibleSection title="Test Controls">
+        {/* Model Selection */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Select Model
+          </label>
+          <select 
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="w-full p-2 bg-gray-700 rounded text-white"
+          >
+            <option value={MODELS.GPT35}>GPT-3.5</option>
+            <option value={MODELS.GPT4}>GPT-4</option>
+            <option value={MODELS.CLAUDE}>Claude</option>
+            <option value={MODELS.GEMINI}>Gemini</option>
+          </select>
+        </div>
+        
+        {/* Domain Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Enter Domain
+          </label>
+          <input 
+            type="text" 
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            placeholder="e.g., fruits, cars, programming languages"
+            className="w-full p-2 bg-gray-700 rounded text-white"
+          />
+        </div>
+        
+        {/* Run Button */}
+        <button 
+          onClick={runTest}
+          disabled={loading || !domain.trim()}
+          className="w-full p-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Streaming...' : 'Run Domain Test'}
+        </button>
+      </CollapsibleSection>
+      
+      <CollapsibleSection title="Stream Output" defaultExpanded={false}>
+        {(streamText || loading) && (
+          <>
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-md font-semibold">
+                Stream Output {loading && <span className="text-yellow-400">(Streaming...)</span>}
+              </h4>
+              <button 
+                onClick={() => navigator.clipboard.writeText(streamText)}
+                className="text-sm text-blue-400 hover:underline"
               >
-                <option value={MODELS.GPT35}>GPT-3.5</option>
-                <option value={MODELS.GPT4}>GPT-4</option>
-                <option value={MODELS.CLAUDE}>Claude</option>
-                <option value={MODELS.GEMINI}>Gemini</option>
-              </select>
+                Copy
+              </button>
             </div>
-            
-            {/* Domain Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Enter Domain
-              </label>
-              <input 
-                type="text" 
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                placeholder="e.g., fruits, cars, programming languages"
-                className="w-full p-2 bg-gray-700 rounded text-white"
-              />
+            <div className="p-3 bg-gray-700 rounded text-white whitespace-pre-wrap">
+              {streamText}
+              {loading && <span className="animate-pulse">▌</span>}
             </div>
-            
-            {/* Run Button */}
-            <button 
-              onClick={runTest}
-              disabled={loading || !domain.trim()}
-              className="w-full p-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Streaming...' : 'Run Domain Test'}
-            </button>
+          </>
+        )}
+      </CollapsibleSection>
+      
+      <CollapsibleSection title="Batch Results" defaultExpanded={false}>
+        <BatchDisplay batches={batches} />
+      </CollapsibleSection>
+      
+      <CollapsibleSection title="Processing Logs">
+        {error && (
+          <div className="mb-4 p-3 bg-red-600 rounded">
+            <strong>Error:</strong> {error}
           </div>
-        </div>
-
-        {/* Log Output and Results */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Error Display */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-600 rounded">
-              <strong>Error:</strong> {error}
-            </div>
-          )}
-          
-          {/* Stream Text Display */}
-          {(streamText || loading) && (
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="text-md font-semibold">
-                  Stream Output {loading && <span className="text-yellow-400">(Streaming...)</span>}
-                </h4>
-                <button 
-                  onClick={() => navigator.clipboard.writeText(streamText)}
-                  className="text-sm text-blue-400 hover:underline"
+        )}
+        <div className="h-64 bg-gray-900 rounded p-4 font-mono text-sm overflow-auto">
+          {logs.length === 0 ? (
+            <div className="text-gray-500">No logs yet... Run a test to see output.</div>
+          ) : (
+            <>
+              {logs.map((log, i) => (
+                <div 
+                  key={i} 
+                  className={`mb-1 ${
+                    log.type === 'error' ? 'text-red-400' : 
+                    log.type === 'debug' ? 'text-gray-400' : 
+                    log.type === 'success' ? 'text-green-400' :
+                    'text-blue-400'
+                  }`}
                 >
-                  Copy
-                </button>
-              </div>
-              <div className="p-3 bg-gray-700 rounded text-white whitespace-pre-wrap">
-                {streamText}
-                {loading && <span className="animate-pulse">▌</span>}
-              </div>
-            </div>
+                  {log.message}
+                </div>
+              ))}
+              <div ref={logEndRef} />
+            </>
           )}
-          
-          {/* Batch Results Display */}
-          <BatchDisplay batches={batches} />
-          
-          {/* Log Output */}
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4">Processing Logs</h3>
-            <div className="h-64 bg-gray-900 rounded p-4 font-mono text-sm overflow-auto">
-              {logs.length === 0 ? (
-                <div className="text-gray-500">No logs yet... Run a test to see output.</div>
-              ) : (
-                <>
-                  {logs.map((log, i) => (
-                    <div 
-                      key={i} 
-                      className={`mb-1 ${
-                        log.type === 'error' ? 'text-red-400' : 
-                        log.type === 'debug' ? 'text-gray-400' : 
-                        log.type === 'success' ? 'text-green-400' :
-                        'text-blue-400'
-                      }`}
-                    >
-                      {log.message}
-                    </div>
-                  ))}
-                  <div ref={logEndRef} />
-                </>
-              )}
-            </div>
-          </div>
         </div>
-      </div>
+        <button 
+          onClick={() => {
+            setLogs([]);
+            setStreamText('');
+            setBatches([]);
+            setError(null);
+          }}
+          className="mt-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+        >
+          Clear Logs & Results
+        </button>
+      </CollapsibleSection>
     </div>
   );
 };
-// export default DevPanel;
 
+// ------------------------------------------
+// Main Feature Dashboard Component
+// ------------------------------------------
 const FeatureDashboard = () => {
   const [devMode, setDevMode] = useState(false);
   

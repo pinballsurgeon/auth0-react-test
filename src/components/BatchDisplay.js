@@ -1,4 +1,5 @@
 // src/components/BatchDisplay.js
+
 import React from 'react';
 
 const BatchDisplay = ({ batches }) => {
