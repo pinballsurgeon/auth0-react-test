@@ -5,9 +5,6 @@ import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { BatchProcessor } from '../../services/batchProcessor';
 import BatchDisplay from '../BatchDisplay'; // Assuming this remains unchanged
 
-// Developer Panel icons (you can move these later if needed)
-import { ReactComponent as CodeIcon } from '../../assets/icons/code.svg'; // Alternatively, keep inline SVG if preferred
-
 const DevPanel = ({ isVisible }) => {
   const [selectedModel, setSelectedModel] = useState(MODELS.GPT35);
   const [domain, setDomain] = useState('');
