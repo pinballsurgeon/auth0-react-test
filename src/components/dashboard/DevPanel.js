@@ -3,7 +3,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import CollapsibleSection from './CollapsibleSection';
 import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { BatchProcessor } from '../../services/batchProcessor';
-import BatchDisplay from '../BatchDisplay'; // Assuming this remains unchanged
+import BatchDisplay from '../BatchDisplay';
+import { fetchAttributesForItem } from '../../services/attributeService';
+
+const CodeIcon = () => (
+  <svg width="24" height="24">
+    <circle cx="12" cy="12" r="10" fill="#EF4444" />
+  </svg>
+);
 
 const DevPanel = ({ isVisible }) => {
   const [selectedModel, setSelectedModel] = useState(MODELS.GPT35);
@@ -13,9 +20,9 @@ const DevPanel = ({ isVisible }) => {
   const [batches, setBatches] = useState([]);
   const [error, setError] = useState(null);
   const [streamText, setStreamText] = useState('');
+  const [attributeResults, setAttributeResults] = useState([]);
   const logEndRef = useRef(null);
 
-  // Auto-scroll logs
   useEffect(() => {
     if (logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -31,19 +38,36 @@ const DevPanel = ({ isVisible }) => {
     setBatches(prev => [...prev, batchResult]);
   };
 
+  const processAttributes = async (items) => {
+    addLog(`Starting attribute generation for ${items.length} items`);
+    try {
+      const attributePromises = items.map(item =>
+        fetchAttributesForItem(item)
+          .then(data => ({ item, attributes: data.attributes, success: true }))
+          .catch(err => ({ item, error: err.message, success: false }))
+      );
+      const results = await Promise.all(attributePromises);
+      addLog(`Attribute generation complete`, 'success');
+      setAttributeResults(results);
+    } catch (err) {
+      addLog(`Attribute generation error: ${err.message}`, 'error');
+    }
+  };
+
   const runTest = async () => {
     setLoading(true);
     setError(null);
     setBatches([]);
     setStreamText('');
     setLogs([]);
+    setAttributeResults([]);
     addLog(`Starting domain list generation for: "${domain}"`);
 
     const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
 
     try {
       await generateDomainItemsStream(
-        domain, 
+        domain,
         selectedModel,
         async (chunk) => {
           if (chunk.startsWith('\n\nTotal items:')) {
@@ -55,6 +79,13 @@ const DevPanel = ({ isVisible }) => {
           }
         }
       );
+
+      const items = streamText.split(',').map(s => s.trim()).filter(Boolean);
+      if (items.length) {
+        processAttributes(items);
+      } else {
+        addLog('No valid domain items found for attribute generation', 'error');
+      }
     } catch (err) {
       setError(err.message);
       addLog(`Error: ${err.message}`, 'error');
@@ -71,9 +102,7 @@ const DevPanel = ({ isVisible }) => {
       
       <CollapsibleSection title="Test Controls">
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Select Model
-          </label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Select Model</label>
           <select 
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
@@ -87,9 +116,7 @@ const DevPanel = ({ isVisible }) => {
         </div>
         
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Enter Domain
-          </label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Enter Domain</label>
           <input 
             type="text" 
             value={domain}
@@ -134,6 +161,20 @@ const DevPanel = ({ isVisible }) => {
         <BatchDisplay batches={batches} />
       </CollapsibleSection>
       
+      <CollapsibleSection title="Attribute Generation Results" defaultExpanded={false}>
+        {attributeResults.length === 0 ? (
+          <div className="text-gray-500">No attribute results yet...</div>
+        ) : (
+          <div className="space-y-2">
+            {attributeResults.map((result, i) => (
+              <div key={i} className={`p-2 rounded ${result.success ? 'bg-green-800' : 'bg-red-800'}`}>
+                <strong>{result.item}</strong>: {result.success ? JSON.stringify(result.attributes) : `Error: ${result.error}`}
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsibleSection>
+      
       <CollapsibleSection title="Processing Logs">
         {error && (
           <div className="mb-4 p-3 bg-red-600 rounded">
@@ -146,15 +187,11 @@ const DevPanel = ({ isVisible }) => {
           ) : (
             <>
               {logs.map((log, i) => (
-                <div 
-                  key={i} 
-                  className={`mb-1 ${
-                    log.type === 'error' ? 'text-red-400' : 
-                    log.type === 'debug' ? 'text-gray-400' : 
-                    log.type === 'success' ? 'text-green-400' :
-                    'text-blue-400'
-                  }`}
-                >
+                <div key={i} className={`mb-1 ${
+                  log.type === 'error' ? 'text-red-400' : 
+                  log.type === 'debug' ? 'text-gray-400' : 
+                  log.type === 'success' ? 'text-green-400' : 'text-blue-400'
+                }`}>
                   {log.message}
                 </div>
               ))}
@@ -168,6 +205,7 @@ const DevPanel = ({ isVisible }) => {
             setStreamText('');
             setBatches([]);
             setError(null);
+            setAttributeResults([]);
           }}
           className="mt-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
         >
