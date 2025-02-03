@@ -1,55 +1,46 @@
 // /src/services/attributeService.js
 
 /**
- * Calls the attribute cloud function endpoint and returns the aggregated JSON.
- * The function expects a payload with { item, instructionKey }.
- *
+ * Fetches attributes for a given domain item via the attribute cloud function.
  * @param {string} item - The domain item for which attributes are needed.
- * @param {string} instructionKey - Should be "attribute".
- * @param {function} onChunk - Callback to process each SSE chunk.
- * @returns {Promise<object>} - The final attributes JSON (e.g. { attributes: { ... } })
+ * @returns {Promise<object>} - Resolves with the parsed JSON response.
  */
-export async function fetchAttributesStream(item, instructionKey, onChunk) {
-    // Adjust this URL as necessary based on your deployment
-    const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
+export async function fetchAttributesForItem(item) {
+    // Adjust the endpoint URL to match your deployment (relative URL if using proxy)
+    const endpoint = '/cloudFunctions/handleAttributes';
   
+    // Call the cloud function with a POST request.
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ item, instructionKey }),
+      // Include both item and the instructionKey ("attribute") as required by the function.
+      body: JSON.stringify({ item, instructionKey: 'attribute' }),
     });
   
     if (!response.ok) {
       throw new Error(`Failed to fetch attributes for item: ${item}`);
     }
   
-    // Process the SSE stream.
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let aggregatedText = '';
+    // Read the response body as text. Here we assume the cloud function returns a final JSON message.
+    const responseText = await response.text();
   
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const chunkText = decoder.decode(value, { stream: true });
-      // SSE data comes in lines starting with "data: "
-      chunkText.split('\n').forEach(line => {
-        if (line.startsWith('data: ')) {
-          const data = line.replace('data: ', '').trim();
-          // If the chunk signals completion, ignore further processing
-          if (data === '[DONE]') return;
-          // Pass the chunk to a callback for live UI updates if desired
-          if (onChunk) onChunk(data);
-          aggregatedText += data;
-        }
-      });
+    // Since the cloud function uses SSE, the text might contain multiple SSE data lines.
+    // We'll extract the final JSON message. One approach is to split by line and find the last valid JSON line.
+    const lines = responseText.split('\n').filter(line => line.startsWith('data:'));
+    let jsonText = '';
+    // Look for the last line that is not the "[DONE]" signal.
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const lineContent = lines[i].replace('data: ', '').trim();
+      if (lineContent !== '[DONE]' && lineContent.length > 0) {
+        jsonText = lineContent;
+        break;
+      }
     }
   
-    // Try parsing the aggregated text as JSON.
     try {
-      const parsed = JSON.parse(aggregatedText);
-      return parsed; // expected to be like { attributes: { ... } }
-    } catch (e) {
+      const parsed = JSON.parse(jsonText);
+      return parsed;
+    } catch (err) {
       throw new Error('Failed to parse attribute JSON response');
     }
   }
