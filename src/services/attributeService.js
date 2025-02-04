@@ -1,13 +1,8 @@
 // /src/services/attributeService.js
 
-/**
- * Fetches attributes for a given domain item via the attribute cloud function.
- * @param {string} item - The domain item for which attributes are needed.
- * @returns {Promise<object>} - Resolves with the parsed JSON response.
- */
 export async function fetchAttributesForItem(item) {
     // Adjust the endpoint URL to match your deployment (relative URL if using proxy)
-    const endpoint = '/cloudFunctions/handleAttributes';
+    const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
   
     // Call the cloud function with a POST request.
     const response = await fetch(endpoint, {
