@@ -1,29 +1,37 @@
 // /src/services/attributeService.js
 
-export async function fetchAttributesForItem(item) {
-    // Adjust the endpoint URL to match your deployment (relative URL if using proxy)
+/**
+ * Fetches global attributes for a domain based on a sample of domain members.
+ * 
+ * @param {string} domain - The domain name (e.g., "mexican food").
+ * @param {Array<string>} sampleMembers - An array of sample domain members (e.g., ["taco", "burrito"]).
+ * @returns {Promise<object>} - Resolves with the parsed JSON response containing global attributes.
+ */
+export async function fetchGlobalAttributes(domain, sampleMembers) {
+    // Adjust the endpoint URL as needed.
     const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
+    const payload = {
+      domain,
+      sampleMembers,
+      instructionKey: 'globalAttribute' // This tells the cloud function to generate global attributes.
+    };
   
-    // Call the cloud function with a POST request.
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Include both item and the instructionKey ("attribute") as required by the function.
-      body: JSON.stringify({ item, instructionKey: 'attribute' }),
+      body: JSON.stringify(payload),
     });
   
     if (!response.ok) {
-      throw new Error(`Failed to fetch attributes for item: ${item}`);
+      throw new Error(`Failed to fetch global attributes for domain: ${domain}`);
     }
   
-    // Read the response body as text. Here we assume the cloud function returns a final JSON message.
+    // Read the response body as text (SSE stream).
     const responseText = await response.text();
   
-    // Since the cloud function uses SSE, the text might contain multiple SSE data lines.
-    // We'll extract the final JSON message. One approach is to split by line and find the last valid JSON line.
+    // Extract the final JSON message from the SSE stream.
     const lines = responseText.split('\n').filter(line => line.startsWith('data:'));
     let jsonText = '';
-    // Look for the last line that is not the "[DONE]" signal.
     for (let i = lines.length - 1; i >= 0; i--) {
       const lineContent = lines[i].replace('data: ', '').trim();
       if (lineContent !== '[DONE]' && lineContent.length > 0) {
@@ -36,7 +44,54 @@ export async function fetchAttributesForItem(item) {
       const parsed = JSON.parse(jsonText);
       return parsed;
     } catch (err) {
-      throw new Error('Failed to parse attribute JSON response');
+      throw new Error('Failed to parse global attributes JSON response');
+    }
+  }
+  
+  /**
+   * Fetches rated attributes for a single domain member based on global attributes.
+   * 
+   * @param {string} member - The individual domain member (e.g., "taco").
+   * @param {object} globalAttributes - The global attributes object previously fetched.
+   * @returns {Promise<object>} - Resolves with the parsed JSON response containing rated attributes.
+   */
+  export async function fetchRatedAttributesForItem(member, globalAttributes) {
+    // Adjust the endpoint URL as needed.
+    const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
+    const payload = {
+      member,
+      globalAttributes,
+      instructionKey: 'rateAttributes' // This instructs the cloud function to return attribute ratings.
+    };
+  
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  
+    if (!response.ok) {
+      throw new Error(`Failed to fetch rated attributes for member: ${member}`);
+    }
+  
+    const responseText = await response.text();
+  
+    // Extract the final JSON message from the SSE stream.
+    const lines = responseText.split('\n').filter(line => line.startsWith('data:'));
+    let jsonText = '';
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const lineContent = lines[i].replace('data: ', '').trim();
+      if (lineContent !== '[DONE]' && lineContent.length > 0) {
+        jsonText = lineContent;
+        break;
+      }
+    }
+  
+    try {
+      const parsed = JSON.parse(jsonText);
+      return parsed;
+    } catch (err) {
+      throw new Error('Failed to parse rated attributes JSON response');
     }
   }
   
