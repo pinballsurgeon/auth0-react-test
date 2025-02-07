@@ -4,7 +4,8 @@ import CollapsibleSection from './CollapsibleSection';
 import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { BatchProcessor } from '../../services/batchProcessor';
 import BatchDisplay from '../BatchDisplay';
-import { fetchAttributesForItem } from '../../services/attributeService';
+// IMPORTANT: These two functions are assumed to be implemented in your attribute service.
+import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../services/attributeService';
 
 const CodeIcon = () => (
   <svg width="24" height="24">
@@ -13,6 +14,7 @@ const CodeIcon = () => (
 );
 
 const DevPanel = ({ isVisible }) => {
+  // State variables
   const [selectedModel, setSelectedModel] = useState(MODELS.GPT35);
   const [domain, setDomain] = useState('');
   const [logs, setLogs] = useState([]);
@@ -20,72 +22,95 @@ const DevPanel = ({ isVisible }) => {
   const [batches, setBatches] = useState([]);
   const [error, setError] = useState(null);
   const [streamText, setStreamText] = useState('');
-  const [attributeResults, setAttributeResults] = useState([]);
+  const [domainMembers, setDomainMembers] = useState([]);           // Accumulates all domain members as they stream in.
+  const [globalAttributes, setGlobalAttributes] = useState(null);     // The one-time global attribute set.
+  const [ratedAttributes, setRatedAttributes] = useState([]);           // Ratings for each domain member.
   const logEndRef = useRef(null);
 
+  // Auto-scroll logs whenever they update.
   useEffect(() => {
     if (logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs]);
 
+  // Utility: Add a log message with a timestamp.
   const addLog = (message, type = 'info') => {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
     setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
   };
 
+  // Callback for batch processing (unchanged)
   const handleBatchProcessed = (batchResult) => {
     setBatches(prev => [...prev, batchResult]);
   };
 
-  const processAttributes = async (items) => {
-    addLog(`Starting attribute generation for ${items.length} items`);
-    try {
-      const attributePromises = items.map(item =>
-        fetchAttributesForItem(item)
-          .then(data => ({ item, attributes: data.attributes, success: true }))
-          .catch(err => ({ item, error: err.message, success: false }))
-      );
-      const results = await Promise.all(attributePromises);
-      addLog(`Attribute generation complete`, 'success');
-      setAttributeResults(results);
-    } catch (err) {
-      addLog(`Attribute generation error: ${err.message}`, 'error');
-    }
-  };
+  // Define the number of domain members needed from the first stream to trigger global attribute fetching.
+  const FIRST_BATCH_THRESHOLD = 2; // (Adjust as needed.)
 
+  // runTest orchestrates the complete flow.
   const runTest = async () => {
     setLoading(true);
     setError(null);
     setBatches([]);
     setStreamText('');
     setLogs([]);
-    setAttributeResults([]);
+    setDomainMembers([]);
+    setGlobalAttributes(null);
+    setRatedAttributes([]);
     addLog(`Starting domain list generation for: "${domain}"`);
 
     const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
+    let firstBatchFetched = false;  // Flag to ensure global attribute request only happens once.
 
     try {
+      // Start streaming domain items.
       await generateDomainItemsStream(
         domain,
         selectedModel,
         async (chunk) => {
-          if (chunk.startsWith('\n\nTotal items:')) {
-            addLog(chunk.trim(), 'success');
-            await batchProcessor.finalize();
-          } else {
-            setStreamText(prev => prev + chunk);
-            batchProcessor.processStreamChunk(chunk);
-          }
+          // Append the streaming chunk.
+          setStreamText(prev => prev + chunk);
+          // Assume each chunk is a comma-separated list of domain members.
+          const newMembers = chunk.split(',').map(s => s.trim()).filter(Boolean);
+          setDomainMembers(prev => {
+            const updatedMembers = [...prev, ...newMembers];
+            // When the first batch threshold is reached, trigger global attribute fetch.
+            if (!firstBatchFetched && updatedMembers.length >= FIRST_BATCH_THRESHOLD) {
+              firstBatchFetched = true;
+              const firstBatch = updatedMembers.slice(0, FIRST_BATCH_THRESHOLD);
+              addLog(`First batch reached: ${firstBatch.join(', ')}`);
+              // Fetch global attributes using the domain and first batch.
+              fetchGlobalAttributes(domain, firstBatch)
+                .then((globalAttr) => {
+                  setGlobalAttributes(globalAttr);
+                  addLog('Global attributes fetched successfully', 'success');
+                  // Now fetch rated attributes for each domain member.
+                  const ratedPromises = updatedMembers.map(member =>
+                    fetchRatedAttributesForItem(member, globalAttr)
+                      .then(result => ({ member, attributes: result.attributes, success: true }))
+                      .catch(err => ({ member, error: err.message, success: false }))
+                  );
+                  Promise.all(ratedPromises)
+                    .then((ratedResults) => {
+                      setRatedAttributes(ratedResults);
+                      addLog('Rated attributes fetched for all domain members', 'success');
+                    })
+                    .catch((err) => {
+                      addLog(`Error fetching rated attributes: ${err.message}`, 'error');
+                    });
+                })
+                .catch((err) => {
+                  addLog(`Error fetching global attributes: ${err.message}`, 'error');
+                });
+            }
+            return updatedMembers;
+          });
+          // Process chunk for batch display.
+          batchProcessor.processStreamChunk(chunk);
         }
       );
-
-      const items = streamText.split(',').map(s => s.trim()).filter(Boolean);
-      if (items.length) {
-        processAttributes(items);
-      } else {
-        addLog('No valid domain items found for attribute generation', 'error');
-      }
+      await batchProcessor.finalize();
     } catch (err) {
       setError(err.message);
       addLog(`Error: ${err.message}`, 'error');
@@ -114,18 +139,16 @@ const DevPanel = ({ isVisible }) => {
             <option value={MODELS.GEMINI}>Gemini</option>
           </select>
         </div>
-        
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-300 mb-2">Enter Domain</label>
           <input 
             type="text" 
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
-            placeholder="e.g., fruits, cars, programming languages"
+            placeholder="e.g., mexican food, sports, programming languages"
             className="w-full p-2 bg-gray-700 rounded text-white"
           />
         </div>
-        
         <button 
           onClick={runTest}
           disabled={loading || !domain.trim()}
@@ -161,14 +184,24 @@ const DevPanel = ({ isVisible }) => {
         <BatchDisplay batches={batches} />
       </CollapsibleSection>
       
-      <CollapsibleSection title="Attribute Generation Results" defaultExpanded={false}>
-        {attributeResults.length === 0 ? (
-          <div className="text-gray-500">No attribute results yet...</div>
+      <CollapsibleSection title="Global Domain Attributes" defaultExpanded={false}>
+        {globalAttributes ? (
+          <div className="p-3 bg-green-800 rounded">
+            <pre className="text-white">{JSON.stringify(globalAttributes, null, 2)}</pre>
+          </div>
+        ) : (
+          <div className="text-gray-500">No global attributes fetched yet...</div>
+        )}
+      </CollapsibleSection>
+      
+      <CollapsibleSection title="Rated Attributes for Domain Members" defaultExpanded={false}>
+        {ratedAttributes.length === 0 ? (
+          <div className="text-gray-500">No rated attributes yet...</div>
         ) : (
           <div className="space-y-2">
-            {attributeResults.map((result, i) => (
+            {ratedAttributes.map((result, i) => (
               <div key={i} className={`p-2 rounded ${result.success ? 'bg-green-800' : 'bg-red-800'}`}>
-                <strong>{result.item}</strong>: {result.success ? JSON.stringify(result.attributes) : `Error: ${result.error}`}
+                <strong>{result.member}</strong>: {result.success ? JSON.stringify(result.attributes) : `Error: ${result.error}`}
               </div>
             ))}
           </div>
@@ -205,7 +238,9 @@ const DevPanel = ({ isVisible }) => {
             setStreamText('');
             setBatches([]);
             setError(null);
-            setAttributeResults([]);
+            setDomainMembers([]);
+            setGlobalAttributes(null);
+            setRatedAttributes([]);
           }}
           className="mt-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
         >
