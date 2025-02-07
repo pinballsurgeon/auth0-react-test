@@ -13,7 +13,7 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     const payload = {
       domain,
       sampleMembers,
-      instructionKey: 'globalAttribute' // This tells the cloud function to generate global attributes.
+      instructionKey: 'attribute' // This tells the cloud function to generate global attributes.
     };
   
     const response = await fetch(endpoint, {
@@ -61,7 +61,7 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     const payload = {
       member,
       globalAttributes,
-      instructionKey: 'rateAttributes' // This instructs the cloud function to return attribute ratings.
+      instructionKey: 'attribute' // This instructs the cloud function to return attribute ratings.
     };
   
     const response = await fetch(endpoint, {
