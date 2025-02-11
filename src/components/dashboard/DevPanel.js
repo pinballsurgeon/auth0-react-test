@@ -13,8 +13,9 @@ const CodeIcon = () => (
   </svg>
 );
 
+
 const DevPanel = ({ isVisible }) => {
-  // State variables
+  // State variables for domain test streaming and attribute processing.
   const [selectedModel, setSelectedModel] = useState(MODELS.GPT35);
   const [domain, setDomain] = useState('');
   const [logs, setLogs] = useState([]);
@@ -22,34 +23,35 @@ const DevPanel = ({ isVisible }) => {
   const [batches, setBatches] = useState([]);
   const [error, setError] = useState(null);
   const [streamText, setStreamText] = useState('');
-  const [domainMembers, setDomainMembers] = useState([]);           // Accumulates all domain members as they stream in.
-  const [globalAttributes, setGlobalAttributes] = useState(null);     // The one-time global attribute set.
-  const [ratedAttributes, setRatedAttributes] = useState([]);           // Ratings for each domain member.
+  const [domainMembers, setDomainMembers] = useState([]);       // All domain members streamed.
+  const [globalAttributes, setGlobalAttributes] = useState(null); // Global attribute set (fetched once).
+  const [ratedAttributes, setRatedAttributes] = useState([]);     // Per‑member rated attributes.
   const logEndRef = useRef(null);
 
-  // Auto-scroll logs whenever they update.
+  // Auto-scroll log container when logs update.
   useEffect(() => {
     if (logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs]);
 
-  // Utility: Add a log message with a timestamp.
+  // Utility: Append a timestamped log entry.
   const addLog = (message, type = 'info') => {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
     setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
   };
 
-  // Callback for batch processing (unchanged)
+  // Batch processing callback.
   const handleBatchProcessed = (batchResult) => {
     setBatches(prev => [...prev, batchResult]);
   };
 
-  // Define the number of domain members needed from the first stream to trigger global attribute fetching.
-  const FIRST_BATCH_THRESHOLD = 2; // (Adjust as needed.)
+  // When we have at least this many members in the first stream, trigger global attribute fetch.
+  const FIRST_BATCH_THRESHOLD = 2;
 
-  // runTest orchestrates the complete flow.
+  // runTest orchestrates the complete chain.
   const runTest = async () => {
+    // Reset all states.
     setLoading(true);
     setError(null);
     setBatches([]);
@@ -61,31 +63,32 @@ const DevPanel = ({ isVisible }) => {
     addLog(`Starting domain list generation for: "${domain}"`);
 
     const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
-    let firstBatchFetched = false;  // Flag to ensure global attribute request only happens once.
+    let firstBatchFetched = false; // Ensure global attribute request only happens once.
 
     try {
-      // Start streaming domain items.
+      // Stream domain members.
       await generateDomainItemsStream(
         domain,
         selectedModel,
         async (chunk) => {
-          // Append the streaming chunk.
+          // Append current chunk to stream text.
           setStreamText(prev => prev + chunk);
-          // Assume each chunk is a comma-separated list of domain members.
+          // Assume each chunk is a comma-separated list.
           const newMembers = chunk.split(',').map(s => s.trim()).filter(Boolean);
+          // Update the list of domain members.
           setDomainMembers(prev => {
             const updatedMembers = [...prev, ...newMembers];
-            // When the first batch threshold is reached, trigger global attribute fetch.
+            // When the threshold is reached, trigger global attribute fetch.
             if (!firstBatchFetched && updatedMembers.length >= FIRST_BATCH_THRESHOLD) {
               firstBatchFetched = true;
               const firstBatch = updatedMembers.slice(0, FIRST_BATCH_THRESHOLD);
               addLog(`First batch reached: ${firstBatch.join(', ')}`);
-              // Fetch global attributes using the domain and first batch.
+              // Fetch global attributes using the domain and sample members.
               fetchGlobalAttributes(domain, firstBatch)
                 .then((globalAttr) => {
                   setGlobalAttributes(globalAttr);
                   addLog('Global attributes fetched successfully', 'success');
-                  // Now fetch rated attributes for each domain member.
+                  // Now, for every domain member, launch parallel rating requests.
                   const ratedPromises = updatedMembers.map(member =>
                     fetchRatedAttributesForItem(member, globalAttr)
                       .then(result => ({ member, attributes: result.attributes, success: true }))
@@ -106,7 +109,7 @@ const DevPanel = ({ isVisible }) => {
             }
             return updatedMembers;
           });
-          // Process chunk for batch display.
+          // Process the chunk for batch display.
           batchProcessor.processStreamChunk(chunk);
         }
       );
