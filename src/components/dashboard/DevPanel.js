@@ -99,7 +99,7 @@ const DevPanel = ({ isVisible }) => {
                     .then((ratedResults) => {
                       setRatedAttributes(ratedResults);
                       addLog('Rated attributes fetched for all domain members', 'success');
-                      addLog(`${ratedResults}`, 'success');
+                      addLog(`${JSON.stringify(ratedResults, null, 2)}`, 'success');
                     })
                     .catch((err) => {
                       addLog(`Error fetching rated attributes: ${err.message}`, 'error');
