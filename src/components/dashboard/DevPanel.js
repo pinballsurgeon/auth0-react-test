@@ -88,6 +88,7 @@ const DevPanel = ({ isVisible }) => {
                 .then((globalAttr) => {
                   setGlobalAttributes(globalAttr);
                   addLog('Global attributes fetched successfully', 'success');
+
                   // Now, for every domain member, launch parallel rating requests.
                   const ratedPromises = updatedMembers.map(member =>
                     fetchRatedAttributesForItem(member, globalAttr)
@@ -98,6 +99,7 @@ const DevPanel = ({ isVisible }) => {
                     .then((ratedResults) => {
                       setRatedAttributes(ratedResults);
                       addLog('Rated attributes fetched for all domain members', 'success');
+                      addLog(`${ratedResults}`, 'success');
                     })
                     .catch((err) => {
                       addLog(`Error fetching rated attributes: ${err.message}`, 'error');
