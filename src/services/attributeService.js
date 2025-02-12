@@ -1,5 +1,7 @@
 // /src/services/attributeService.js
 
+import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../components/dashboard/DevPanel';
+
 /**
  * Fetches global attributes for a domain based on a sample of domain members.
  * 
@@ -13,7 +15,7 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     const payload = {
       domain,
       sampleMembers,
-      instructionKey: 'globalAttribute' // This tells the cloud function to generate global attributes.
+      instructionKey: 'globalAttribute'
     };
   
     const response = await fetch(endpoint, {
@@ -29,6 +31,8 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     // Read the response body as text (SSE stream).
     const responseText = await response.text();
   
+
+    addLog(`Rating result: ${JSON.stringify(responseText)}`);
     // Extract the final JSON message from the SSE stream.
     const lines = responseText.split('\n').filter(line => line.startsWith('data:'));
     let jsonText = '';

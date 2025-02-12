@@ -13,6 +13,11 @@ const CodeIcon = () => (
   </svg>
 );
 
+// Utility: Append a timestamped log entry.
+export const addLog = (message, type = 'info') => {
+  const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+  setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
+};
 
 const DevPanel = ({ isVisible }) => {
   // State variables for domain test streaming and attribute processing.
@@ -34,12 +39,6 @@ const DevPanel = ({ isVisible }) => {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs]);
-
-  // Utility: Append a timestamped log entry.
-  const addLog = (message, type = 'info') => {
-    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
-    setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
-  };
 
   // Batch processing callback.
   const handleBatchProcessed = (batchResult) => {
@@ -71,18 +70,23 @@ const DevPanel = ({ isVisible }) => {
         domain,
         selectedModel,
         async (chunk) => {
+
           // Append current chunk to stream text.
           setStreamText(prev => prev + chunk);
+
           // Assume each chunk is a comma-separated list.
           const newMembers = chunk.split(',').map(s => s.trim()).filter(Boolean);
+
           // Update the list of domain members.
           setDomainMembers(prev => {
             const updatedMembers = [...prev, ...newMembers];
+
             // When the threshold is reached, trigger global attribute fetch.
             if (!firstBatchFetched && updatedMembers.length >= FIRST_BATCH_THRESHOLD) {
               firstBatchFetched = true;
               const firstBatch = updatedMembers.slice(0, FIRST_BATCH_THRESHOLD);
               addLog(`First batch reached: ${firstBatch.join(', ')}`);
+
               // Fetch global attributes using the domain and sample members.
               fetchGlobalAttributes(domain, firstBatch)
                 .then((globalAttr) => {
@@ -95,6 +99,7 @@ const DevPanel = ({ isVisible }) => {
                       .then(result => ({ member, attributes: result.attributes, success: true }))
                       .catch(err => ({ member, error: err.message, success: false }))
                   );
+
                   Promise.all(ratedPromises)
                     .then((ratedResults) => {
                       setRatedAttributes(ratedResults);
