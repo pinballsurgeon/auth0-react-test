@@ -44,10 +44,10 @@ export class BatchProcessor {
         const imageUrl = await this.fetchImage(item);
         const duration = (performance.now() - startTime).toFixed(2);
         
-        this.logWithTimestamp(
-          `Fetched image for "${item}" in ${duration}ms`,
-          'debug'
-        );
+        // this.logWithTimestamp(
+        //   `Fetched image for "${item}" in ${duration}ms`,
+        //   'debug'
+        // );
 
         return {
           text: item,
@@ -87,8 +87,8 @@ export class BatchProcessor {
     const items = this.batchBuffer.split(',').map(item => item.trim()).filter(Boolean);
     
     // Process in batches of 5 items
-    while (items.length >= 5) {
-      const batchItems = items.splice(0, 5);
+    while (items.length >= 10) {
+      const batchItems = items.splice(0, 10);
       this.processBatch(batchItems);
     }
     
