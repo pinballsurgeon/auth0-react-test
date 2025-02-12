@@ -6,6 +6,7 @@ import { BatchProcessor } from '../../services/batchProcessor';
 import BatchDisplay from '../BatchDisplay';
 // IMPORTANT: These two functions are assumed to be implemented in your attribute service.
 import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../services/attributeService';
+import { LogService } from '../../services/logService';
 
 const CodeIcon = () => (
   <svg width="24" height="24">
@@ -39,6 +40,20 @@ const DevPanel = ({ isVisible }) => {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs]);
+
+  useEffect(() => {
+    // Register the setLogs method as a listener
+    const logListener = (logEntry) => {
+      setLogs(prev => [...prev, logEntry]);
+    };
+    
+    LogService.addListener(logListener);
+
+    // Cleanup listener when component unmounts
+    return () => {
+      LogService.removeListener(logListener);
+    };
+  }, []);
 
   // Batch processing callback.
   const handleBatchProcessed = (batchResult) => {

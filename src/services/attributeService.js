@@ -1,6 +1,7 @@
 // /src/services/attributeService.js
 
 import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../components/dashboard/DevPanel';
+import { LogService } from '../../services/logService';
 
 /**
  * Fetches global attributes for a domain based on a sample of domain members.
@@ -32,7 +33,9 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     const responseText = await response.text();
   
 
-    addLog(`Rating result: ${JSON.stringify(responseText)}`);
+    LogService.log(`Rating result: ${JSON.stringify(responseText)}`, 'info');
+
+
     // Extract the final JSON message from the SSE stream.
     const lines = responseText.split('\n').filter(line => line.startsWith('data:'));
     let jsonText = '';
