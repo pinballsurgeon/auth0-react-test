@@ -1,7 +1,7 @@
 // /src/services/attributeService.js
 
 // import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../components/dashboard/DevPanel';
-import { LogService } from '../../services/logService';
+import { LogService } from './logService';
 
 /**
  * Fetches global attributes for a domain based on a sample of domain members.
