@@ -33,7 +33,7 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     const responseText = await response.text();
   
 
-    LogService.log(`Rating result: ${JSON.stringify(responseText)}`, 'info');
+    LogService.log(`Attribute result: ${JSON.stringify(responseText)}`, 'info');
 
 
     // Extract the final JSON message from the SSE stream.
@@ -82,6 +82,8 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     }
   
     const responseText = await response.text();
+
+    LogService.log(`Rating result: ${JSON.stringify(responseText)}`, 'info');
   
     // Extract the final JSON message from the SSE stream.
     const lines = responseText.split('\n').filter(line => line.startsWith('data:'));
