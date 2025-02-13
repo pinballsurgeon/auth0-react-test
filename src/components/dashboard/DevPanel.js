@@ -14,11 +14,7 @@ const CodeIcon = () => (
   </svg>
 );
 
-// Utility: Append a timestamped log entry.
-export const addLog = (message, type = 'info') => {
-  const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
-  setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
-};
+
 
 const DevPanel = ({ isVisible }) => {
   // State variables for domain test streaming and attribute processing.
@@ -40,6 +36,12 @@ const DevPanel = ({ isVisible }) => {
   //     logEndRef.current.scrollIntoView({ behavior: 'smooth' });
   //   }
   // }, [logs]);
+
+  // Utility: Append a timestamped log entry.
+  const addLog = (message, type = 'info') => {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    setLogs(prev => [...prev, { message: `[${timestamp}] ${message}`, type }]);
+  };
 
   useEffect(() => {
     // Register the setLogs method as a listener
