@@ -1,6 +1,6 @@
 // /src/services/attributeService.js
 
-import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../components/dashboard/DevPanel';
+// import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../components/dashboard/DevPanel';
 import { LogService } from '../../services/logService';
 
 /**
