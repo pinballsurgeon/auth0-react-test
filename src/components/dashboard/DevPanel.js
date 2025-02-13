@@ -35,11 +35,11 @@ const DevPanel = ({ isVisible }) => {
   const logEndRef = useRef(null);
 
   // Auto-scroll log container when logs update.
-  useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [logs]);
+  // useEffect(() => {
+  //   if (logEndRef.current) {
+  //     logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  //   }
+  // }, [logs]);
 
   useEffect(() => {
     // Register the setLogs method as a listener
