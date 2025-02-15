@@ -10,6 +10,11 @@ import { LogService } from '../../services/logService';
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+const randomSleep = (min = 50, max = 5000) => {
+  // Generate a random delay between min and max milliseconds.
+  const delay = Math.random() * (max - min) + min;
+  return new Promise(resolve => setTimeout(resolve, delay));
+};
 
 const DevPanel = ({ isVisible }) => {
   // State variables for domain test streaming and attribute processing.
@@ -78,7 +83,7 @@ const runTest = async () => {
     if (processedMembers.has(member)) return;
     processedMembers.add(member);
     // Add a small delay (e.g., 50ms) before launching the rating request.
-    await sleep(1000);
+    await randomSleep();
     fetchRatedAttributesForItem(member, globalAttr)
       .then(result => {
         setRatedAttributes(prev => [
