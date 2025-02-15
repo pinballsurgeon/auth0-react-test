@@ -8,6 +8,8 @@ import BatchDisplay from '../BatchDisplay';
 import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../services/attributeService';
 import { LogService } from '../../services/logService';
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 
 const DevPanel = ({ isVisible }) => {
   // State variables for domain test streaming and attribute processing.
