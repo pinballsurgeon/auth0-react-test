@@ -52,90 +52,125 @@ const DevPanel = ({ isVisible }) => {
   const FIRST_BATCH_THRESHOLD = 2;
 
   // runTest orchestrates the complete chain.
-  const runTest = async () => {
-    // Reset all states.
-    setLoading(true);
-    setError(null);
-    setBatches([]);
-    setStreamText('');
-    setLogs([]);
-    setDomainMembers([]);
-    setGlobalAttributes(null);
-    setRatedAttributes([]);
-    addLog(`Starting domain list generation for: "${domain}"`);
+const runTest = async () => {
+  // Reset all states.
+  setLoading(true);
+  setError(null);
+  setBatches([]);
+  setStreamText('');
+  setLogs([]);
+  setDomainMembers([]);
+  setGlobalAttributes(null);
+  setRatedAttributes([]);
+  addLog(`Starting domain list generation for: "${domain}"`);
 
-    const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
-    let firstBatchFetched = false; // Ensure global attribute request only happens once.
+  // Local variables to handle streaming and processing.
+  let partialBuffer = ''; // Accumulates incomplete text from chunks.
+  const processedMembers = new Set(); // To avoid duplicate rating requests.
+  const pendingRatingMembers = []; // Members waiting for global attributes.
+  let globalAttributesFetched = false;
+  let globalAttrLocal = null; // Will hold the fetched global attributes.
 
-    try {
-      // Stream domain members.
-      await generateDomainItemsStream(
-        domain,
-        selectedModel,
-        async (chunk) => {
-
-          // Append current chunk to stream text.
-          setStreamText(prev => prev + chunk);
-
-          // Assume each chunk is a comma-separated list.
-          const newMembers = chunk.split(',').map(s => s.trim()).filter(Boolean);
-
-          // Update the list of domain members.
-          setDomainMembers(prev => {
-            const updatedMembers = [...prev, ...newMembers];
-
-            // When the threshold is reached, trigger global attribute fetch.
-            if (!firstBatchFetched && updatedMembers.length >= FIRST_BATCH_THRESHOLD) {
-              firstBatchFetched = true;
-              const firstBatch = updatedMembers.slice(0, FIRST_BATCH_THRESHOLD);
-              addLog(`First batch reached: ${firstBatch.join(', ')}`);
-
-              // Fetch global attributes using the domain and sample members.
-              fetchGlobalAttributes(domain, firstBatch)
-              .then((globalAttr) => {
-                setGlobalAttributes(globalAttr);
-                addLog('Global attributes fetched successfully', 'success');
-
-                // Now, for every domain member, launch parallel rating requests.
-                const ratedPromises = updatedMembers.map(member =>
-                  fetchRatedAttributesForItem(member, globalAttr)
-                    .then(result => ({
-                      member,
-                      attributes: result[member] || result, // Updated extraction here.
-                      success: true
-                    }))
-                    .catch(err => ({ member, error: err.message, success: false }))
-                );
-
-                Promise.all(ratedPromises)
-                  .then((ratedResults) => {
-                    setRatedAttributes(ratedResults);
-                    addLog('Rated attributes fetched for all domain members', 'success');
-                    addLog(`${JSON.stringify(ratedResults, null, 2)}`, 'success');
-                  })
-                  .catch((err) => {
-                    addLog(`Error fetching rated attributes: ${err.message}`, 'error');
-                  });
-              })
-              .catch((err) => {
-                addLog(`Error fetching global attributes: ${err.message}`, 'error');
-              });
-
-            }
-            return updatedMembers;
-          });
-          // Process the chunk for batch display.
-          batchProcessor.processStreamChunk(chunk);
-        }
-      );
-      await batchProcessor.finalize();
-    } catch (err) {
-      setError(err.message);
-      addLog(`Error: ${err.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
+  // Helper: Process an individual member (if not already processed) using global attributes.
+  const processMemberRating = (member, globalAttr) => {
+    if (processedMembers.has(member)) return;
+    processedMembers.add(member);
+    // Launch the rating request asynchronously.
+    fetchRatedAttributesForItem(member, globalAttr)
+      .then(result => {
+        setRatedAttributes(prev => [
+          ...prev,
+          { member, attributes: result[member] || result, success: true },
+        ]);
+      })
+      .catch(err => {
+        setRatedAttributes(prev => [
+          ...prev,
+          { member, error: err.message, success: false },
+        ]);
+      });
   };
+
+  // Helper: Process an array of new members.
+  const processNewMembers = (members, globalAttr) => {
+    members.forEach(member => processMemberRating(member, globalAttr));
+  };
+
+  const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
+
+  try {
+    await generateDomainItemsStream(domain, selectedModel, async (chunk) => {
+      // Append current chunk to stream text (for UI display).
+      setStreamText(prev => prev + chunk);
+
+      // Add the new chunk to our partialBuffer.
+      partialBuffer += chunk;
+      // Split on commas. (Assuming CSV output from the LLM.)
+      let parts = partialBuffer.split(',');
+      // All parts except the last one are complete (if any).
+      let completeMembers = parts.slice(0, -1).map(s => s.trim()).filter(Boolean);
+      // The last part may be incomplete—store it back into partialBuffer.
+      partialBuffer = parts[parts.length - 1];
+
+      // Update our state of domain members.
+      setDomainMembers(prev => [...prev, ...completeMembers]);
+
+      // Queue each new complete member for rating if not already processed.
+      completeMembers.forEach(member => {
+        if (!processedMembers.has(member)) {
+          pendingRatingMembers.push(member);
+        }
+      });
+
+      // When enough members are available, fetch global attributes (only once).
+      if (!globalAttributesFetched && pendingRatingMembers.length >= FIRST_BATCH_THRESHOLD) {
+        globalAttributesFetched = true; // Only do this once.
+        const firstBatch = [...pendingRatingMembers];
+        addLog(`First batch reached: ${firstBatch.join(', ')}`);
+        fetchGlobalAttributes(domain, firstBatch)
+          .then(attr => {
+            globalAttrLocal = attr;
+            setGlobalAttributes(attr);
+            addLog('Global attributes fetched successfully', 'success');
+            // Process all members that are pending.
+            pendingRatingMembers.forEach(member => processMemberRating(member, attr));
+            // Clear the pending queue.
+            pendingRatingMembers.length = 0;
+          })
+          .catch(err => {
+            addLog(`Error fetching global attributes: ${err.message}`, 'error');
+          });
+      } else if (globalAttributesFetched && globalAttrLocal) {
+        // If global attributes are already available, process these new members immediately.
+        processNewMembers(completeMembers, globalAttrLocal);
+      }
+
+      // Process the chunk for batch display.
+      batchProcessor.processStreamChunk(chunk);
+    });
+
+    // After streaming ends, check if there is any leftover text that forms a complete member.
+    if (partialBuffer.trim()) {
+      const lastMember = partialBuffer.trim();
+      setDomainMembers(prev => [...prev, lastMember]);
+      if (!processedMembers.has(lastMember)) {
+        if (globalAttributesFetched && globalAttrLocal) {
+          processMemberRating(lastMember, globalAttrLocal);
+        } else {
+          pendingRatingMembers.push(lastMember);
+        }
+      }
+    }
+
+    await batchProcessor.finalize();
+  } catch (err) {
+    setError(err.message);
+    addLog(`Error: ${err.message}`, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (!isVisible) return null;
 
