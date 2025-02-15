@@ -8,13 +8,6 @@ import BatchDisplay from '../BatchDisplay';
 import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../services/attributeService';
 import { LogService } from '../../services/logService';
 
-const CodeIcon = () => (
-  <svg width="24" height="24">
-    <circle cx="12" cy="12" r="10" fill="#EF4444" />
-  </svg>
-);
-
-
 
 const DevPanel = ({ isVisible }) => {
   // State variables for domain test streaming and attribute processing.
@@ -25,17 +18,10 @@ const DevPanel = ({ isVisible }) => {
   const [batches, setBatches] = useState([]);
   const [error, setError] = useState(null);
   const [streamText, setStreamText] = useState('');
-  const [domainMembers, setDomainMembers] = useState([]);       // All domain members streamed.
+  const [domainMembers, setDomainMembers] = useState([]);         // All domain members streamed.
   const [globalAttributes, setGlobalAttributes] = useState(null); // Global attribute set (fetched once).
   const [ratedAttributes, setRatedAttributes] = useState([]);     // Per‑member rated attributes.
   const logEndRef = useRef(null);
-
-  // Auto-scroll log container when logs update.
-  // useEffect(() => {
-  //   if (logEndRef.current) {
-  //     logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  //   }
-  // }, [logs]);
 
   // Utility: Append a timestamped log entry.
   const addLog = (message, type = 'info') => {
@@ -226,14 +212,52 @@ const DevPanel = ({ isVisible }) => {
           <div className="text-gray-500">No rated attributes yet...</div>
         ) : (
           <div className="space-y-2">
-            {ratedAttributes.map((result, i) => (
-              <div key={i} className={`p-2 rounded ${result.success ? 'bg-green-800' : 'bg-red-800'}`}>
-                <strong>{result.member}</strong>: {result.success ? JSON.stringify(result.attributes) : `Error: ${result.error}`}
-              </div>
-            ))}
+            {ratedAttributes.map((result, i) => {
+              if (!result.success) {
+                return (
+                  <div key={i} className="p-2 rounded bg-red-800">
+                    <strong>{result.member}</strong>: Error: {result.error}
+                  </div>
+                );
+              }
+              
+              // The rated attributes response comes back as an object where the key is the member name.
+              // For example: { "1927 Bugatti Type 3": { "acceleration-speed": 3, ... } }
+              const ratedData = result.attributes;
+              
+              // Determine which key to use:
+              // If the response contains the member's name as a key, use that. Otherwise, use the first key.
+              let ratings;
+              if (ratedData && typeof ratedData === 'object') {
+                if (result.member in ratedData) {
+                  ratings = ratedData[result.member];
+                } else {
+                  const keys = Object.keys(ratedData);
+                  ratings = keys.length === 1 ? ratedData[keys[0]] : ratedData;
+                }
+              }
+
+              return (
+                <div key={i} className="p-2 rounded bg-green-800">
+                  <strong>{result.member}</strong>:
+                  {ratings ? (
+                    <ul className="mt-2 list-disc ml-4">
+                      {Object.entries(ratings).map(([attr, value]) => (
+                        <li key={attr}>
+                          <strong>{attr}</strong>: {value}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="ml-2">No ratings data available</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </CollapsibleSection>
+
       
       <CollapsibleSection title="Processing Logs">
         {error && (
