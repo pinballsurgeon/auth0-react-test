@@ -217,36 +217,23 @@ const DevPanel = ({ isVisible }) => {
           <div className="text-gray-500">No rated attributes yet...</div>
         ) : (
           <div className="space-y-2">
-            {ratedAttributes.map((result, i) => {
-              if (!result.success) {
-                return (
-                  <div key={i} className="p-2 rounded bg-red-800">
-                    <strong>{result.member}</strong>: Error: {result.error}
-                  </div>
-                );
-              }
-
-              const ratings = result.attributes;
-              return (
-                <div key={i} className="p-2 rounded bg-green-800">
-                  <strong>{result.member}</strong>:
-                  {ratings ? (
-                    <ul className="mt-2 list-disc ml-4">
-                      {Object.entries(ratings).map(([attr, value]) => (
-                        <li key={attr}>
-                          <strong>{attr}</strong>: {value}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="ml-2">No ratings data available</span>
-                  )}
-                </div>
-              );
-            })}
+            {ratedAttributes.map((result, i) => (
+              <div
+                key={i}
+                className={`p-2 rounded ${result.success ? 'bg-green-800' : 'bg-red-800'}`}
+              >
+                <strong>{result.member}</strong>:
+                <pre className="mt-2 text-white whitespace-pre-wrap">
+                  {result.success
+                    ? JSON.stringify(result.attributes, null, 2)
+                    : `Error: ${result.error}`}
+                </pre>
+              </div>
+            ))}
           </div>
         )}
       </CollapsibleSection>
+
       
       <CollapsibleSection title="Processing Logs">
         {error && (
