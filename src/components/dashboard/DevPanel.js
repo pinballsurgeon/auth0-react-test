@@ -72,10 +72,11 @@ const runTest = async () => {
   let globalAttrLocal = null; // Will hold the fetched global attributes.
 
   // Helper: Process an individual member (if not already processed) using global attributes.
-  const processMemberRating = (member, globalAttr) => {
+  const processMemberRating = async (member, globalAttr) => {
     if (processedMembers.has(member)) return;
     processedMembers.add(member);
-    // Launch the rating request asynchronously.
+    // Add a small delay (e.g., 50ms) before launching the rating request.
+    await sleep(50);
     fetchRatedAttributesForItem(member, globalAttr)
       .then(result => {
         setRatedAttributes(prev => [
