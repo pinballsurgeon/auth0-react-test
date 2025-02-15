@@ -98,6 +98,7 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
   
     try {
       const parsed = JSON.parse(jsonText);
+      LogService.log(`Parsed rating result: ${JSON.stringify(parsed)}`, 'info');
       return parsed;
     } catch (err) {
       throw new Error('Failed to parse rated attributes JSON response');
