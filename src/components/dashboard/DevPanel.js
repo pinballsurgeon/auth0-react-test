@@ -92,30 +92,35 @@ const DevPanel = ({ isVisible }) => {
 
               // Fetch global attributes using the domain and sample members.
               fetchGlobalAttributes(domain, firstBatch)
-                .then((globalAttr) => {
-                  setGlobalAttributes(globalAttr);
-                  addLog('Global attributes fetched successfully', 'success');
+              .then((globalAttr) => {
+                setGlobalAttributes(globalAttr);
+                addLog('Global attributes fetched successfully', 'success');
 
-                  // Now, for every domain member, launch parallel rating requests.
-                  const ratedPromises = updatedMembers.map(member =>
-                    fetchRatedAttributesForItem(member, globalAttr)
-                      .then(result => ({ member, attributes: result.attributes, success: true }))
-                      .catch(err => ({ member, error: err.message, success: false }))
-                  );
+                // Now, for every domain member, launch parallel rating requests.
+                const ratedPromises = updatedMembers.map(member =>
+                  fetchRatedAttributesForItem(member, globalAttr)
+                    .then(result => ({
+                      member,
+                      attributes: result[member] || result, // Updated extraction here.
+                      success: true
+                    }))
+                    .catch(err => ({ member, error: err.message, success: false }))
+                );
 
-                  Promise.all(ratedPromises)
-                    .then((ratedResults) => {
-                      setRatedAttributes(ratedResults);
-                      addLog('Rated attributes fetched for all domain members', 'success');
-                      addLog(`${JSON.stringify(ratedResults, null, 2)}`, 'success');
-                    })
-                    .catch((err) => {
-                      addLog(`Error fetching rated attributes: ${err.message}`, 'error');
-                    });
-                })
-                .catch((err) => {
-                  addLog(`Error fetching global attributes: ${err.message}`, 'error');
-                });
+                Promise.all(ratedPromises)
+                  .then((ratedResults) => {
+                    setRatedAttributes(ratedResults);
+                    addLog('Rated attributes fetched for all domain members', 'success');
+                    addLog(`${JSON.stringify(ratedResults, null, 2)}`, 'success');
+                  })
+                  .catch((err) => {
+                    addLog(`Error fetching rated attributes: ${err.message}`, 'error');
+                  });
+              })
+              .catch((err) => {
+                addLog(`Error fetching global attributes: ${err.message}`, 'error');
+              });
+
             }
             return updatedMembers;
           });
@@ -220,23 +225,8 @@ const DevPanel = ({ isVisible }) => {
                   </div>
                 );
               }
-              
-              // The rated attributes response comes back as an object where the key is the member name.
-              // For example: { "1927 Bugatti Type 3": { "acceleration-speed": 3, ... } }
-              const ratedData = result.attributes;
-              
-              // Determine which key to use:
-              // If the response contains the member's name as a key, use that. Otherwise, use the first key.
-              let ratings;
-              if (ratedData && typeof ratedData === 'object') {
-                if (result.member in ratedData) {
-                  ratings = ratedData[result.member];
-                } else {
-                  const keys = Object.keys(ratedData);
-                  ratings = keys.length === 1 ? ratedData[keys[0]] : ratedData;
-                }
-              }
 
+              const ratings = result.attributes;
               return (
                 <div key={i} className="p-2 rounded bg-green-800">
                   <strong>{result.member}</strong>:
@@ -257,7 +247,6 @@ const DevPanel = ({ isVisible }) => {
           </div>
         )}
       </CollapsibleSection>
-
       
       <CollapsibleSection title="Processing Logs">
         {error && (
