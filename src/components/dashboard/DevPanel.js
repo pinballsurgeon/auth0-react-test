@@ -10,7 +10,7 @@ import { LogService } from '../../services/logService';
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-const randomSleep = (min = 50, max = 5000) => {
+const randomSleep = (min = 5000, max = 20000) => {
   // Generate a random delay between min and max milliseconds.
   const delay = Math.random() * (max - min) + min;
   return new Promise(resolve => setTimeout(resolve, delay));
