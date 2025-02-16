@@ -22,6 +22,16 @@ const DevPanel = ({ isVisible }) => {
   const [ratedAttributes, setRatedAttributes] = useState([]);     // Per‑member rated attributes.
   const logEndRef = useRef(null);
 
+  const clearAllState = () => {
+    setLogs([]);
+    setStreamText('');
+    setBatches([]);
+    setError(null);
+    setDomainMembers([]);
+    setGlobalAttributes(null);
+    setRatedAttributes([]);
+  };
+
   // Utility: Append a timestamped log entry.
   const addLog = (message, type = 'info') => {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
