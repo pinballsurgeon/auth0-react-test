@@ -83,7 +83,7 @@ const runTest = async () => {
     if (processedMembers.has(member)) return;
     processedMembers.add(member);
     // Add a small delay (e.g., 50ms) before launching the rating request.
-    await randomSleep();
+    // await randomSleep();
     fetchRatedAttributesForItem(member, globalAttr)
       .then(result => {
         setRatedAttributes(prev => [
