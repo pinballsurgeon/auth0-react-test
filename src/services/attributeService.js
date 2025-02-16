@@ -11,8 +11,9 @@ import { LogService } from './logService';
  * @returns {Promise<object>} - Resolves with the parsed JSON response containing global attributes.
  */
 export async function fetchGlobalAttributes(domain, sampleMembers) {
-    // Adjust the endpoint URL as needed.
-    const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
+
+    // const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
+    const endpoint = 'https://us-central1-zippy-purpose-257102.cloudfunctions.net/vector-projector-attributes-v2';
     const payload = {
       domain,
       sampleMembers,
