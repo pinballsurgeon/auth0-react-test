@@ -65,7 +65,8 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
    */
   export async function fetchRatedAttributesForItem(member, globalAttributes) {
     // Adjust the endpoint URL as needed.
-    const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
+    // const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
+    const endpoint = 'https://us-central1-zippy-purpose-257102.cloudfunctions.net/vector-projector-attributes-v2';
     const payload = {
       member,
       globalAttributes,
