@@ -124,6 +124,22 @@ const DevPanelViz = ({
         )}
       </CollapsibleSection>
 
+      {/* New section to display the complete domain member data structure */}
+      <CollapsibleSection
+        title="Complete Domain Member Data (with PCA Iterations & Image URLs)"
+        defaultExpanded={false}
+      >
+        {ratedAttributes.length === 0 ? (
+          <div className="text-gray-500">No member data available yet...</div>
+        ) : (
+          <div className="p-3 bg-gray-800 rounded">
+            <pre className="text-white">
+              {JSON.stringify(ratedAttributes, null, 2)}
+            </pre>
+          </div>
+        )}
+      </CollapsibleSection>
+
       <CollapsibleSection title="Processing Logs">
         {error && (
           <div className="mb-4 p-3 bg-red-600 rounded">
