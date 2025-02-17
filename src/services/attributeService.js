@@ -64,13 +64,26 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
    * @returns {Promise<object>} - Resolves with the parsed JSON response containing rated attributes.
    */
   export async function fetchRatedAttributesForItem(member, globalAttributes) {
-    // Adjust the endpoint URL as needed.
-    // const endpoint = 'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2';
-    const endpoint = 'https://us-central1-zippy-purpose-257102.cloudfunctions.net/vector-projector-attributes-v2';
+    // Define both endpoints
+    const endpoints = [
+      'https://us-central1-dehls-deluxo-engine.cloudfunctions.net/vector-projector-attributes-v2',
+      'https://us-central1-zippy-purpose-257102.cloudfunctions.net/vector-projector-attributes-v2'
+    ];
+  
+    // Simple hash function to consistently map members to endpoints
+    const getEndpointIndex = (member) => {
+      const hash = member.split('').reduce((acc, char) => {
+        return char.charCodeAt(0) + ((acc << 5) - acc);
+      }, 0);
+      return Math.abs(hash) % endpoints.length;
+    };
+  
+    const endpoint = endpoints[getEndpointIndex(member)];
+    
     const payload = {
       member,
       globalAttributes,
-      instructionKey: 'rateAttributes' // This instructs the cloud function to return attribute ratings.
+      instructionKey: 'rateAttributes'
     };
   
     const response = await fetch(endpoint, {
@@ -84,10 +97,9 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
     }
   
     const responseText = await response.text();
-
     LogService.log(`Rating result: ${JSON.stringify(responseText)}`, 'info');
   
-    // Extract the final JSON message from the SSE stream.
+    // Extract the final JSON message from the SSE stream
     const lines = responseText.split('\n').filter(line => line.startsWith('data:'));
     let jsonText = '';
     for (let i = lines.length - 1; i >= 0; i--) {
@@ -106,4 +118,3 @@ export async function fetchGlobalAttributes(domain, sampleMembers) {
       throw new Error('Failed to parse rated attributes JSON response');
     }
   }
-  
