@@ -1,6 +1,6 @@
 // /src/components/dashboard/DevPanel.js
 import React, { useState, useRef, useEffect } from 'react';
-import PCA from 'ml-pca'; // npm install ml-pca
+import { PCA } from 'ml-pca';
 import { generateDomainItemsStream, MODELS } from '../../services/llmProvider';
 import { BatchProcessor } from '../../services/batchProcessor';
 import { fetchGlobalAttributes, fetchRatedAttributesForItem } from '../../services/attributeService';
