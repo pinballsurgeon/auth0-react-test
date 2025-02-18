@@ -1,4 +1,4 @@
-// /src/components/dashboard/DevPanelViz.js
+// src/components/dashboard/DevPanelViz.js
 import React from 'react';
 import CollapsibleSection from './CollapsibleSection';
 import BatchDisplay from '../BatchDisplay';
@@ -9,18 +9,28 @@ const DevPanelViz = ({
   domain,
   logs,
   loading,
-  batches,
   error,
-  streamText,
-  globalAttributes,
-  ratedAttributes,
-  // Handlers passed from container
+  // The new prop containing all workflow data
+  workflowData,
+  // Legacy props (if needed)
+  // streamText,
+  // globalAttributes,
+  // ratedAttributes,
+  // batches,
   onModelChange,
   onDomainChange,
   onRunTest,
   onClearLogsAndResults,
 }) => {
   if (!isVisible) return null;
+
+  // If workflowData exists, destructure its fields for easier use.
+  const {
+    domainMembers = [],
+    globalAttributes = null,
+    ratedAttributes = [],
+    batches = [],
+  } = workflowData || {};
 
   return (
     <div className="mb-12 p-6 bg-gray-900 rounded-xl text-white">
@@ -63,8 +73,9 @@ const DevPanelViz = ({
         </button>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Stream Output" defaultExpanded={false}>
-        {(streamText || loading) && (
+      {/* Optionally, if you still want to display raw stream text, add that section */}
+      {/* <CollapsibleSection title="Stream Output" defaultExpanded={false}>
+        {loading && (
           <>
             <div className="flex justify-between items-center mb-2">
               <h4 className="text-md font-semibold">
@@ -84,7 +95,7 @@ const DevPanelViz = ({
             </div>
           </>
         )}
-      </CollapsibleSection>
+      </CollapsibleSection> */}
 
       <CollapsibleSection title="Batch Results" defaultExpanded={false}>
         <BatchDisplay batches={batches} />
@@ -106,25 +117,26 @@ const DevPanelViz = ({
         ) : (
           <div className="space-y-2">
             {ratedAttributes.map((result, i) => (
-              <div
-                key={i}
-                className={`p-2 rounded ${
-                  result.success ? 'bg-green-800' : 'bg-red-800'
-                }`}
-              >
-                <strong>{result.member}</strong>:
-                <pre className="mt-2 text-white whitespace-pre-wrap">
-                  {result.success
-                    ? JSON.stringify(result.attributes, null, 2)
-                    : `Error: ${result.error}`}
-                </pre>
-              </div>
+              result && (
+                <div
+                  key={i}
+                  className={`p-2 rounded ${
+                    result.success ? 'bg-green-800' : 'bg-red-800'
+                  }`}
+                >
+                  <strong>{result.member}</strong>:
+                  <pre className="mt-2 text-white whitespace-pre-wrap">
+                    {result.success
+                      ? JSON.stringify(result.attributes, null, 2)
+                      : `Error: ${result.error}`}
+                  </pre>
+                </div>
+              )
             ))}
           </div>
         )}
       </CollapsibleSection>
 
-      {/* New section to display the complete domain member data structure */}
       <CollapsibleSection
         title="Complete Domain Member Data (with PCA Iterations & Image URLs)"
         defaultExpanded={false}
