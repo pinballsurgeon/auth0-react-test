@@ -78,10 +78,11 @@ export const runWorkflow = async ({
   };
 
   // Function to dynamically perform PCA on the valid rated attributes.
+  // Function to dynamically perform PCA on the valid rated attributes.
   const updatePCA = () => {
     const validRatings = ratedAttributes.filter(item => item.success && item.attributes);
     if (validRatings.length === 0) return;
-
+  
     // Extract the first valid rating object's nested rating values.
     const firstAttributes = validRatings[0].attributes;
     let firstRatingObj = null;
@@ -95,7 +96,7 @@ export const runWorkflow = async ({
       addLog('No valid numerical rating object found for PCA', 'error');
       return;
     }
-
+  
     // Determine the rating keys from the nested object.
     const ratingKeys = Object.keys(firstRatingObj).filter(key => {
       const value = firstRatingObj[key];
@@ -105,8 +106,8 @@ export const runWorkflow = async ({
       addLog('No valid numerical attributes found for PCA', 'error');
       return;
     }
-
-    // Build the data matrix from each valid entry.
+  
+    // Build the data matrix: For each valid entry, extract the nested rating object and then the values.
     const dataMatrix = validRatings.map(item => {
       let ratingObj = null;
       for (const key in item.attributes) {
@@ -117,15 +118,16 @@ export const runWorkflow = async ({
       }
       return ratingKeys.map(key => Number(ratingObj[key]));
     });
-
+  
     // Perform PCA to reduce to 3 components.
     const pca = new PCA(dataMatrix);
     const projected = pca.predict(dataMatrix, { nComponents: 3 }).to2DArray();
-
+  
     // Construct a dynamic field key, e.g., "batch0_pca", "batch1_pca", etc.
     const fieldKey = `batch${pcaIterationCount}_pca`;
-
+  
     // Update each valid rated attribute object with the new PCA result.
+    // Note: we update ALL valid entries so that each member now has the new PCA iteration field.
     ratedAttributes = ratedAttributes.map((item, index) => {
       if (item.success && item.attributes) {
         return { ...item, [fieldKey]: projected[index] };
@@ -133,11 +135,12 @@ export const runWorkflow = async ({
       return item;
     });
     addLog(`Performed PCA iteration ${pcaIterationCount} on ${validRatings.length} members`);
-
-    // Update iteration count and threshold.
+  
+    // Increment PCA iteration count and update the next threshold.
     pcaIterationCount += 1;
     nextPcaThreshold += 5;
   };
+  
 
   // Constant for when to fetch global attributes.
   const FIRST_BATCH_THRESHOLD = 2;
