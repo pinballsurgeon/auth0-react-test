@@ -14,9 +14,9 @@ const DevPanelViz = ({
   workflowData,
   // Legacy props (if needed)
   streamText,
-  globalAttributes,
-  ratedAttributes,
-  batches,
+  //globalAttributes,
+  //ratedAttributes,
+  //batches,
   onModelChange,
   onDomainChange,
   onRunTest,
