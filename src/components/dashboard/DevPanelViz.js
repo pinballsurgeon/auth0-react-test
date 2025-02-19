@@ -74,7 +74,7 @@ const DevPanelViz = ({
       </CollapsibleSection>
 
       {/* Optionally, if you still want to display raw stream text, add that section */}
-      {/* <CollapsibleSection title="Stream Output" defaultExpanded={false}>
+      <CollapsibleSection title="Stream Output" defaultExpanded={false}>
         {loading && (
           <>
             <div className="flex justify-between items-center mb-2">
@@ -95,7 +95,7 @@ const DevPanelViz = ({
             </div>
           </>
         )}
-      </CollapsibleSection> */}
+      </CollapsibleSection>
 
       <CollapsibleSection title="Batch Results" defaultExpanded={false}>
         <BatchDisplay batches={batches} />
