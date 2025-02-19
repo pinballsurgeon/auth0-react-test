@@ -13,10 +13,10 @@ const DevPanelViz = ({
   // The new prop containing all workflow data
   workflowData,
   // Legacy props (if needed)
-  // streamText,
-  // globalAttributes,
-  // ratedAttributes,
-  // batches,
+  streamText,
+  globalAttributes,
+  ratedAttributes,
+  batches,
   onModelChange,
   onDomainChange,
   onRunTest,
