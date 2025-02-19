@@ -97,45 +97,65 @@ const DevPanel = ({ isVisible }) => {
     // Get only successful rated entries.
     const validRatings = ratedAttributes.filter(item => item.success && item.attributes);
     if (validRatings.length === 0) return;
-
-    // Dynamically determine the rating keys from the first valid entry.
-    const firstRating = validRatings[0].attributes;
-    const ratingKeys = Object.keys(firstRating).filter(key => {
-      const value = firstRating[key];
+  
+    // Extract the first valid rating object's nested rating values.
+    const firstAttributes = validRatings[0].attributes;
+    let firstRatingObj = null;
+    for (const key in firstAttributes) {
+      if (key !== "imageUrl") {
+        firstRatingObj = firstAttributes[key];
+        break;
+      }
+    }
+    if (!firstRatingObj) {
+      addLog('No valid numerical rating object found for PCA', 'error');
+      return;
+    }
+    
+    // Determine the rating keys from the nested object.
+    const ratingKeys = Object.keys(firstRatingObj).filter(key => {
+      const value = firstRatingObj[key];
       return typeof value === 'number' && value >= 0 && value <= 10;
     });
     if (ratingKeys.length === 0) {
       addLog('No valid numerical attributes found for PCA', 'error');
       return;
     }
-
-    // Build data matrix: each row corresponds to the numerical ratings for the keys.
-    const dataMatrix = validRatings.map(item =>
-      ratingKeys.map(key => Number(item.attributes[key]))
-    );
-
-    // Compute PCA to reduce to 3 components.
+  
+    // Build the data matrix: For each valid entry, extract the nested rating object and then the values.
+    const dataMatrix = validRatings.map(item => {
+      let ratingObj = null;
+      for (const key in item.attributes) {
+        if (key !== "imageUrl") {
+          ratingObj = item.attributes[key];
+          break;
+        }
+      }
+      return ratingKeys.map(key => Number(ratingObj[key]));
+    });
+  
+    // Perform PCA to reduce to 3 components.
     const pca = new PCA(dataMatrix);
     const projected = pca.predict(dataMatrix, { nComponents: 3 }).to2DArray();
-
+  
     // Construct a dynamic field key, e.g., "batch0_pca", "batch1_pca", etc.
     const fieldKey = `batch${pcaIterationCount}_pca`;
-
-    // Update each valid rated attribute object with the new PCA results.
+  
+    // Update each valid rated attribute object with the new PCA result.
     const updatedRatedAttributes = ratedAttributes.map((item, index) => {
       if (item.success && item.attributes) {
-        // We assume that the order of validRatings matches the order in ratedAttributes.
         return { ...item, [fieldKey]: projected[index] };
       }
       return item;
     });
     setRatedAttributes(updatedRatedAttributes);
     addLog(`Performed PCA iteration ${pcaIterationCount} on ${validRatings.length} members`);
-
-    // Update iteration count and set the next threshold.
+  
+    // Increment PCA iteration count and update the next threshold.
     setPcaIterationCount(prev => prev + 1);
     setNextPcaThreshold(prev => prev + 5);
   };
+  
 
   // Trigger PCA update when ratedAttributes changes and valid count reaches the threshold.
   useEffect(() => {
