@@ -13,15 +13,17 @@ import { LogService } from './logService';
  * @param {string} params.domain - The domain input (e.g., "cars").
  * @param {string} [params.selectedModel=MODELS.GPT35] - The selected LLM model.
  * @param {Function} [params.logCallback] - Optional callback to receive log entries.
- * @returns {Promise<Object>} The final data structure including domain members, global attributes,
- * rated attributes (with iterative PCA), logs, and batch info.
+ * @returns {Promise<Object>} The final data structure including domainMembers, globalAttributes,
+ * ratedAttributes (with iterative PCA fields), logs, and batch info.
  */
 export const runWorkflow = async ({
   domain,
   selectedModel = MODELS.GPT35,
-  logCallback = () => {}
+  logCallback = () => {},
 }) => {
-  // Initialize state variables.
+  // ----------------------------
+  // 1. Initialize local "state"
+  // ----------------------------
   let logs = [];
   let domainMembers = [];
   let globalAttributes = null;
@@ -30,11 +32,11 @@ export const runWorkflow = async ({
   let nextPcaThreshold = 5;
   const batches = [];
 
-  // Track processed and pending members.
+  // Tracking for processed members and those pending rating
   const processedMembers = new Set();
   const pendingRatingMembers = [];
 
-  // Utility: Append a timestamped log entry.
+  // Utility to push logs with a timestamp
   const addLog = (message, type = 'info') => {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
     const logEntry = { message: `[${timestamp}] ${message}`, type };
@@ -42,25 +44,67 @@ export const runWorkflow = async ({
     logCallback(logEntry);
   };
 
-  // Batch processing callback.
+  // ----------------------------
+  // 2. Batch Processor Callback
+  // ----------------------------
+  // We'll store the images from the batch in a map so we can link them back to rated attributes
+  const imageMap = new Map(); // key: item text, value: imageUrl
+
   const handleBatchProcessed = (batchResult) => {
     batches.push(batchResult);
+    // For each item, store its imageUrl in the imageMap
+    batchResult.items.forEach((itm) => {
+      // itm.text is the original domain member name (assuming the chunk is the member string)
+      // itm.imageUrl is the fetched image URL from the batchProcessor
+      if (itm.text && itm.imageUrl) {
+        imageMap.set(itm.text, itm.imageUrl);
+      }
+    });
   };
 
-  // Instantiate the BatchProcessor.
   const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
 
-  // Helper: Process an individual member (if not already processed) using global attributes.
+  // ----------------------------
+  // 3. Helper Functions
+  // ----------------------------
+
+  /**
+   * processMemberRating: fetches rated attributes for a single member
+   * and incorporates an imageUrl (retrieved via batchProcessor results).
+   */
   const processMemberRating = async (member, globalAttr) => {
-    if (processedMembers.has(member)) return;
+    if (processedMembers.has(member)) return; // avoid double-processing
     processedMembers.add(member);
+
     try {
       const result = await fetchRatedAttributesForItem(member, globalAttr);
-      // Simulate retrieving an image URL.
-      const imageUrl = `https://example.com/images/${member.replace(/\s/g, '_')}.jpg`;
+      // We assume `result` might look like:
+      // { "967 Ford Mustang GT": { "acceleration-0-60": 8, "top-speed": 9, ... } }
+      // or possibly just { "acceleration-0-60": 8, "top-speed": 9, ... }
+      // If your function returns a different shape, adapt accordingly.
+
+      // Determine the final rated attributes structure. For PCA logic, we preserve a nested object:
+      // e.g., { [member]: { ...ratings } }
+      let finalRatedObj = {};
+      if (result && typeof result === 'object') {
+        // If the top-level object has the member key, we just reuse it
+        if (result.hasOwnProperty(member)) {
+          finalRatedObj = { [member]: result[member] };
+        } else {
+          // Otherwise, nest the entire object under the member key
+          finalRatedObj = { [member]: result };
+        }
+      }
+
+      // Get the image URL from the batchProcessor’s imageMap (if available)
+      const imageUrl = imageMap.get(member) || null;
+
       ratedAttributes.push({
         member,
-        attributes: { ...result, imageUrl },
+        attributes: {
+          ...finalRatedObj,
+          imageUrl,
+        },
         success: true,
       });
     } catch (err) {
@@ -72,132 +116,168 @@ export const runWorkflow = async ({
     }
   };
 
-  // Helper: Process an array of new members.
+  /**
+   * processNewMembers: fetch rating data for an array of new members.
+   * This is called once global attributes are available.
+   */
   const processNewMembers = async (members, globalAttr) => {
-    await Promise.all(members.map((member) => processMemberRating(member, globalAttr)));
+    await Promise.all(members.map((m) => processMemberRating(m, globalAttr)));
   };
 
-  // Function to dynamically perform PCA on the valid rated attributes.
-  // Function to dynamically perform PCA on the valid rated attributes.
+  /**
+   * updatePCA: Recomputes PCA on all valid rated entries
+   * every time a threshold is reached (e.g., every 5 members).
+   */
   const updatePCA = () => {
-    const validRatings = ratedAttributes.filter(item => item.success && item.attributes);
+    const validRatings = ratedAttributes.filter(
+      (item) => item.success && item.attributes
+    );
     if (validRatings.length === 0) return;
-  
-    // Extract the first valid rating object's nested rating values.
-    const firstAttributes = validRatings[0].attributes;
+
+    // Each item in validRatings has attributes like:
+    // {
+    //   [member]: { acceleration-0-60: 8, top-speed: 9, ... },
+    //   imageUrl: "..."
+    // }
+    // We need to find the "member" portion (not imageUrl).
+    // We'll assume there's exactly one non-"imageUrl" key in the attribute object.
+
+    // Example:
+    // item.attributes = {
+    //   "967 Ford Mustang GT": { acceleration-0-60: 8, top-speed: 9, ... },
+    //   imageUrl: "..."
+    // }
+
+    // 1. Identify the numeric rating keys
     let firstRatingObj = null;
-    for (const key in firstAttributes) {
-      if (key !== "imageUrl") {
-        firstRatingObj = firstAttributes[key];
+    const firstValid = validRatings[0]?.attributes || {};
+    for (const k in firstValid) {
+      if (k !== 'imageUrl' && typeof firstValid[k] === 'object') {
+        firstRatingObj = firstValid[k];
         break;
       }
     }
     if (!firstRatingObj) {
-      addLog('No valid numerical rating object found for PCA', 'error');
+      addLog('No valid rating object found for PCA.', 'error');
       return;
     }
-  
-    // Determine the rating keys from the nested object.
-    const ratingKeys = Object.keys(firstRatingObj).filter(key => {
-      const value = firstRatingObj[key];
-      return typeof value === 'number' && value >= 0 && value <= 10;
+
+    // Filter out non-numerical keys.
+    const ratingKeys = Object.keys(firstRatingObj).filter((k) => {
+      const val = firstRatingObj[k];
+      return typeof val === 'number' && val >= 0 && val <= 10;
     });
     if (ratingKeys.length === 0) {
-      addLog('No valid numerical attributes found for PCA', 'error');
+      addLog('No valid numerical attributes found for PCA.', 'error');
       return;
     }
-  
-    // Build the data matrix: For each valid entry, extract the nested rating object and then the values.
-    const dataMatrix = validRatings.map(item => {
-      let ratingObj = null;
-      for (const key in item.attributes) {
-        if (key !== "imageUrl") {
-          ratingObj = item.attributes[key];
+
+    // 2. Build the data matrix for all valid items.
+    const dataMatrix = validRatings.map((item) => {
+      const attrs = item.attributes;
+      let nestedObj = null;
+      for (const k in attrs) {
+        if (k !== 'imageUrl' && typeof attrs[k] === 'object') {
+          nestedObj = attrs[k];
           break;
         }
       }
-      return ratingKeys.map(key => Number(ratingObj[key]));
+      return ratingKeys.map((k) => Number(nestedObj[k]));
     });
-  
-    // Perform PCA to reduce to 3 components.
+
+    // 3. Run PCA with ml-pca
     const pca = new PCA(dataMatrix);
     const projected = pca.predict(dataMatrix, { nComponents: 3 }).to2DArray();
-  
-    // Construct a dynamic field key, e.g., "batch0_pca", "batch1_pca", etc.
+
+    // 4. Add new PCA field to each ratedAttributes item
+    // E.g., "batch0_pca", "batch1_pca", etc.
     const fieldKey = `batch${pcaIterationCount}_pca`;
-  
-    // Update each valid rated attribute object with the new PCA result.
-    // Note: we update ALL valid entries so that each member now has the new PCA iteration field.
-    ratedAttributes = ratedAttributes.map((item, index) => {
+
+    ratedAttributes = ratedAttributes.map((item, idx) => {
+      // Only add coordinates if this item was "valid" in the dataMatrix
       if (item.success && item.attributes) {
-        return { ...item, [fieldKey]: projected[index] };
+        // The idx of item in validRatings => find that index
+        // Easiest approach: re-check if item is in validRatings
+        const validIndex = validRatings.indexOf(item);
+        if (validIndex !== -1) {
+          return {
+            ...item,
+            [fieldKey]: projected[validIndex],
+          };
+        }
       }
       return item;
     });
-    addLog(`Performed PCA iteration ${pcaIterationCount} on ${validRatings.length} members`);
-  
-    // Increment PCA iteration count and update the next threshold.
+
+    addLog(`Performed PCA iteration ${pcaIterationCount} on ${validRatings.length} items`, 'success');
     pcaIterationCount += 1;
     nextPcaThreshold += 5;
   };
-  
 
-  // Constant for when to fetch global attributes.
+  // -----------------------------------
+  // 4. Main Execution Flow
+  // -----------------------------------
+  addLog(`Starting domain list generation for: "${domain}"`);
+
+  // Variables for controlling global attribute fetch
   const FIRST_BATCH_THRESHOLD = 2;
-
-  // Local variables for stream processing.
-  let partialBuffer = '';
   let globalAttributesFetched = false;
   let globalAttrLocal = null;
 
-  addLog(`Starting domain list generation for: "${domain}"`);
+  // partialBuffer to accumulate incomplete chunks
+  let partialBuffer = '';
 
   try {
-    // Begin streaming domain members.
+    // Start streaming domain items
     await generateDomainItemsStream(domain, selectedModel, async (chunk) => {
+      // 4a. Accumulate chunk in partialBuffer
       partialBuffer += chunk;
-      // Split on commas (assuming CSV output).
+      // 4b. Split on commas
       const parts = partialBuffer.split(',');
-      const completeMembers = parts.slice(0, -1).map(s => s.trim()).filter(Boolean);
+      const completeMembers = parts.slice(0, -1).map((s) => s.trim()).filter(Boolean);
+      // leftover partial chunk
       partialBuffer = parts[parts.length - 1];
+
+      // 4c. Add these new members to domainMembers & pending arrays
       domainMembers.push(...completeMembers);
-      completeMembers.forEach(member => {
-        if (!processedMembers.has(member)) {
-          pendingRatingMembers.push(member);
+      completeMembers.forEach((m) => {
+        if (!processedMembers.has(m)) {
+          pendingRatingMembers.push(m);
         }
       });
 
-      // Fetch global attributes once enough members are pending.
+      // 4d. If we haven't fetched global attributes yet, and we have enough members, do so now
       if (!globalAttributesFetched && pendingRatingMembers.length >= FIRST_BATCH_THRESHOLD) {
         globalAttributesFetched = true;
-        const firstBatch = [...pendingRatingMembers];
-        addLog(`First batch reached: ${firstBatch.join(', ')}`);
+        addLog(`Reached first batch threshold with ${pendingRatingMembers.length} members. Fetching global attributes...`);
         try {
-          globalAttrLocal = await fetchGlobalAttributes(domain, firstBatch);
+          globalAttrLocal = await fetchGlobalAttributes(domain, [...pendingRatingMembers]);
           globalAttributes = globalAttrLocal;
           addLog('Global attributes fetched successfully', 'success');
-          for (const member of pendingRatingMembers) {
-            await processMemberRating(member, globalAttrLocal);
-          }
-          pendingRatingMembers.length = 0;
+          // Process all pending members
+          await processNewMembers(pendingRatingMembers, globalAttrLocal);
+          pendingRatingMembers.length = 0; // clear
         } catch (err) {
           addLog(`Error fetching global attributes: ${err.message}`, 'error');
         }
       } else if (globalAttributesFetched && globalAttrLocal) {
+        // Process new members immediately
         await processNewMembers(completeMembers, globalAttrLocal);
       }
 
-      // Process the chunk for batch display.
+      // 4e. Pass the raw chunk to the batchProcessor (for image fetching)
       batchProcessor.processStreamChunk(chunk);
 
-      // Trigger PCA update if threshold is met.
-      const validCount = ratedAttributes.filter(item => item.success && item.attributes).length;
+      // 4f. Check if we hit the next PCA threshold
+      const validCount = ratedAttributes.filter(
+        (item) => item.success && item.attributes
+      ).length;
       if (validCount >= nextPcaThreshold) {
         updatePCA();
       }
     });
 
-    // Process any remaining data.
+    // 4g. After streaming completes, check leftover partial
     if (partialBuffer.trim()) {
       const lastMember = partialBuffer.trim();
       domainMembers.push(lastMember);
@@ -209,24 +289,29 @@ export const runWorkflow = async ({
         }
       }
     }
+
+    // 4h. Finalize the batchProcessor (catches leftover items for final image fetch)
     await batchProcessor.finalize();
 
-    // Final PCA run (if any valid entries exist).
-    if (ratedAttributes.filter(item => item.success && item.attributes).length > 0) {
+    // 4i. If new valid members arrived after the final chunk, do one more PCA pass if needed
+    const finalValidCount = ratedAttributes.filter(
+      (item) => item.success && item.attributes
+    ).length;
+    if (finalValidCount > 0 && finalValidCount >= nextPcaThreshold - 5) {
       updatePCA();
     }
 
-    // Return the complete data structure.
+    // 4j. Return our final data structure
     return {
       domain,
       domainMembers,
       globalAttributes,
-      ratedAttributes, // Each object now includes PCA results (e.g., batch0_pca, batch1_pca, etc.)
+      ratedAttributes, // includes the final PCA fields (batch0_pca, etc.)
       logs,
       batches,
     };
   } catch (err) {
-    addLog(`Error: ${err.message}`, 'error');
+    addLog(`Error in workflow: ${err.message}`, 'error');
     throw err;
   }
 };
