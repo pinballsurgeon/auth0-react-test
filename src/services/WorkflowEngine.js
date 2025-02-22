@@ -45,23 +45,24 @@ export const runWorkflow = async ({
   };
 
   // ----------------------------
-  // 2. Batch Processor Callback
+  // 2. Batch Processor Setup
   // ----------------------------
-  // We'll store the images from the batch in a map so we can link them back to rated attributes
+  // We'll store the images from the batch in a map so we can reconcile them later
   const imageMap = new Map(); // key: item text, value: imageUrl
 
   const handleBatchProcessed = (batchResult) => {
     batches.push(batchResult);
     // For each item, store its imageUrl in the imageMap
     batchResult.items.forEach((itm) => {
-      // itm.text is the original domain member name (assuming the chunk is the member string)
-      // itm.imageUrl is the fetched image URL from the batchProcessor
+      // itm.text is the domain member name extracted from the chunk
+      // itm.imageUrl is the fetched URL from the batchProcessor
       if (itm.text && itm.imageUrl) {
         imageMap.set(itm.text, itm.imageUrl);
       }
     });
   };
 
+  // Create the batch processor
   const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
 
   // ----------------------------
@@ -70,7 +71,7 @@ export const runWorkflow = async ({
 
   /**
    * processMemberRating: fetches rated attributes for a single member
-   * and incorporates an imageUrl (retrieved via batchProcessor results).
+   * and initially sets the imageUrl to null or a placeholder—later reconciled after batch finalize.
    */
   const processMemberRating = async (member, globalAttr) => {
     if (processedMembers.has(member)) return; // avoid double-processing
@@ -79,31 +80,25 @@ export const runWorkflow = async ({
     try {
       const result = await fetchRatedAttributesForItem(member, globalAttr);
       // We assume `result` might look like:
-      // { "967 Ford Mustang GT": { "acceleration-0-60": 8, "top-speed": 9, ... } }
-      // or possibly just { "acceleration-0-60": 8, "top-speed": 9, ... }
-      // If your function returns a different shape, adapt accordingly.
+      // { "1967 Ford Mustang GT": { "acceleration-0-60": 8, "top-speed": 9, ... } }
+      // or possibly just { "acceleration-0-60": 8, "top-speed": 9, ... }.
 
-      // Determine the final rated attributes structure. For PCA logic, we preserve a nested object:
-      // e.g., { [member]: { ...ratings } }
+      // Build a nested structure to match the PCA logic (where we skip "imageUrl" key).
       let finalRatedObj = {};
       if (result && typeof result === 'object') {
-        // If the top-level object has the member key, we just reuse it
         if (result.hasOwnProperty(member)) {
           finalRatedObj = { [member]: result[member] };
         } else {
-          // Otherwise, nest the entire object under the member key
           finalRatedObj = { [member]: result };
         }
       }
 
-      // Get the image URL from the batchProcessor’s imageMap (if available)
-      const imageUrl = imageMap.get(member) || null;
-
+      // For now, set imageUrl to null (or a placeholder).
       ratedAttributes.push({
         member,
         attributes: {
           ...finalRatedObj,
-          imageUrl,
+          imageUrl: null,
         },
         success: true,
       });
@@ -118,7 +113,7 @@ export const runWorkflow = async ({
 
   /**
    * processNewMembers: fetch rating data for an array of new members.
-   * This is called once global attributes are available.
+   * Called once global attributes are available.
    */
   const processNewMembers = async (members, globalAttr) => {
     await Promise.all(members.map((m) => processMemberRating(m, globalAttr)));
@@ -134,21 +129,7 @@ export const runWorkflow = async ({
     );
     if (validRatings.length === 0) return;
 
-    // Each item in validRatings has attributes like:
-    // {
-    //   [member]: { acceleration-0-60: 8, top-speed: 9, ... },
-    //   imageUrl: "..."
-    // }
-    // We need to find the "member" portion (not imageUrl).
-    // We'll assume there's exactly one non-"imageUrl" key in the attribute object.
-
-    // Example:
-    // item.attributes = {
-    //   "967 Ford Mustang GT": { acceleration-0-60: 8, top-speed: 9, ... },
-    //   imageUrl: "..."
-    // }
-
-    // 1. Identify the numeric rating keys
+    // Identify the numeric rating keys
     let firstRatingObj = null;
     const firstValid = validRatings[0]?.attributes || {};
     for (const k in firstValid) {
@@ -162,7 +143,6 @@ export const runWorkflow = async ({
       return;
     }
 
-    // Filter out non-numerical keys.
     const ratingKeys = Object.keys(firstRatingObj).filter((k) => {
       const val = firstRatingObj[k];
       return typeof val === 'number' && val >= 0 && val <= 10;
@@ -172,7 +152,7 @@ export const runWorkflow = async ({
       return;
     }
 
-    // 2. Build the data matrix for all valid items.
+    // Build the data matrix
     const dataMatrix = validRatings.map((item) => {
       const attrs = item.attributes;
       let nestedObj = null;
@@ -185,25 +165,19 @@ export const runWorkflow = async ({
       return ratingKeys.map((k) => Number(nestedObj[k]));
     });
 
-    // 3. Run PCA with ml-pca
+    // Run PCA with ml-pca
     const pca = new PCA(dataMatrix);
     const projected = pca.predict(dataMatrix, { nComponents: 3 }).to2DArray();
 
-    // 4. Add new PCA field to each ratedAttributes item
-    // E.g., "batch0_pca", "batch1_pca", etc.
+    // Create new PCA field
     const fieldKey = `batch${pcaIterationCount}_pca`;
 
+    // Update each valid item with the new PCA array
     ratedAttributes = ratedAttributes.map((item, idx) => {
-      // Only add coordinates if this item was "valid" in the dataMatrix
       if (item.success && item.attributes) {
-        // The idx of item in validRatings => find that index
-        // Easiest approach: re-check if item is in validRatings
         const validIndex = validRatings.indexOf(item);
         if (validIndex !== -1) {
-          return {
-            ...item,
-            [fieldKey]: projected[validIndex],
-          };
+          return { ...item, [fieldKey]: projected[validIndex] };
         }
       }
       return item;
@@ -219,26 +193,21 @@ export const runWorkflow = async ({
   // -----------------------------------
   addLog(`Starting domain list generation for: "${domain}"`);
 
-  // Variables for controlling global attribute fetch
   const FIRST_BATCH_THRESHOLD = 2;
   let globalAttributesFetched = false;
   let globalAttrLocal = null;
-
-  // partialBuffer to accumulate incomplete chunks
   let partialBuffer = '';
 
   try {
-    // Start streaming domain items
+    // 4a. Start streaming domain items
     await generateDomainItemsStream(domain, selectedModel, async (chunk) => {
-      // 4a. Accumulate chunk in partialBuffer
       partialBuffer += chunk;
-      // 4b. Split on commas
+      // Split on commas
       const parts = partialBuffer.split(',');
       const completeMembers = parts.slice(0, -1).map((s) => s.trim()).filter(Boolean);
-      // leftover partial chunk
       partialBuffer = parts[parts.length - 1];
 
-      // 4c. Add these new members to domainMembers & pending arrays
+      // Update domainMembers
       domainMembers.push(...completeMembers);
       completeMembers.forEach((m) => {
         if (!processedMembers.has(m)) {
@@ -246,10 +215,10 @@ export const runWorkflow = async ({
         }
       });
 
-      // 4d. If we haven't fetched global attributes yet, and we have enough members, do so now
+      // Fetch global attributes when threshold is reached
       if (!globalAttributesFetched && pendingRatingMembers.length >= FIRST_BATCH_THRESHOLD) {
         globalAttributesFetched = true;
-        addLog(`Reached first batch threshold with ${pendingRatingMembers.length} members. Fetching global attributes...`);
+        addLog(`Reached first batch threshold (${FIRST_BATCH_THRESHOLD} members). Fetching global attributes...`);
         try {
           globalAttrLocal = await fetchGlobalAttributes(domain, [...pendingRatingMembers]);
           globalAttributes = globalAttrLocal;
@@ -265,10 +234,10 @@ export const runWorkflow = async ({
         await processNewMembers(completeMembers, globalAttrLocal);
       }
 
-      // 4e. Pass the raw chunk to the batchProcessor (for image fetching)
+      // Pass the raw chunk to the batchProcessor (for image fetching)
       batchProcessor.processStreamChunk(chunk);
 
-      // 4f. Check if we hit the next PCA threshold
+      // Check if we hit the next PCA threshold
       const validCount = ratedAttributes.filter(
         (item) => item.success && item.attributes
       ).length;
@@ -277,7 +246,7 @@ export const runWorkflow = async ({
       }
     });
 
-    // 4g. After streaming completes, check leftover partial
+    // 4b. After streaming completes, check leftover partial
     if (partialBuffer.trim()) {
       const lastMember = partialBuffer.trim();
       domainMembers.push(lastMember);
@@ -290,23 +259,45 @@ export const runWorkflow = async ({
       }
     }
 
-    // 4h. Finalize the batchProcessor (catches leftover items for final image fetch)
+    // 4c. Finalize the batch processor to ensure all images are fetched
     await batchProcessor.finalize();
 
-    // 4i. If new valid members arrived after the final chunk, do one more PCA pass if needed
+    // 4d. One final pass to reconcile images for all rated items
+    //     Some items (especially early ones) might not have had the image yet
+    //     if the BatchProcessor hadn't completed. Now we have a complete imageMap.
+    ratedAttributes = ratedAttributes.map((item) => {
+      if (item.success && item.attributes) {
+        const existingUrl = item.attributes.imageUrl;
+        const fetchedUrl = imageMap.get(item.member);
+        const finalUrl = fetchedUrl || existingUrl || null;
+        return {
+          ...item,
+          attributes: {
+            ...item.attributes,
+            imageUrl: finalUrl,
+          },
+        };
+      }
+      return item;
+    });
+
+    // 4e. Possibly run a final PCA pass if we want all items to be up to date
+    //     (Only if we have new items that arrived after the last threshold check.)
     const finalValidCount = ratedAttributes.filter(
       (item) => item.success && item.attributes
     ).length;
-    if (finalValidCount > 0 && finalValidCount >= nextPcaThreshold - 5) {
+    if (finalValidCount >= nextPcaThreshold - 5) {
+      // Example logic: if we just needed one or two more items to complete the batch,
+      // we can re-run the PCA to include them. Adjust if your logic differs.
       updatePCA();
     }
 
-    // 4j. Return our final data structure
+    // 4f. Return our final data structure
     return {
       domain,
       domainMembers,
       globalAttributes,
-      ratedAttributes, // includes the final PCA fields (batch0_pca, etc.)
+      ratedAttributes, // includes final PCA fields & reconciled image URLs
       logs,
       batches,
     };
