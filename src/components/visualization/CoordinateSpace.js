@@ -73,20 +73,32 @@ const CoordinateSpace = () => {
       }
     });
 
+    // Get container dimensions
+    const container = d3.select(d3Container.current);
+    const containerWidth = d3Container.current.clientWidth;
+    const containerHeight = d3Container.current.clientHeight;
+
+    // Compute viewBox values so that the coordinate system is centered.
+    const viewBoxX = -containerWidth / 2;
+    const viewBoxY = -containerHeight / 2;
+    const viewBoxWidth = containerWidth;
+    const viewBoxHeight = containerHeight;
+
     // Setup or retrieve our SVG container.
-    const svg = d3.select(d3Container.current).select('svg');
+    let svg = container.select('svg');
     if (svg.empty()) {
-      d3.select(d3Container.current)
+      svg = container
         .append('svg')
         .attr('width', '100%')
         .attr('height', '100%')
-        .attr('viewBox', `-250 -250 500 500`)
+        .attr('viewBox', `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`)
         .attr('preserveAspectRatio', 'xMidYMid meet');
     }
-    const g = svg.select('g');
+    let g = svg.select('g');
     if (g.empty()) {
-      setupVisualization(svg);
+      g = setupVisualization(svg);
     }
+
 
     // Clear existing elements and redraw points.
     g.selectAll('*').remove();
