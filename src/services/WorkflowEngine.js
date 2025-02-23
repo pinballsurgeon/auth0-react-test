@@ -21,9 +21,6 @@ export const runWorkflow = async ({
   selectedModel = MODELS.GPT35,
   logCallback = () => {},
 }) => {
-  // ----------------------------
-  // 1. Initialize local "state"
-  // ----------------------------
   let logs = [];
   let domainMembers = [];
   let globalAttributes = null;
@@ -44,9 +41,6 @@ export const runWorkflow = async ({
     logCallback(logEntry);
   };
 
-  // ----------------------------
-  // 2. Batch Processor Setup
-  // ----------------------------
   // We'll store the images from the batch in a map so we can reconcile them later
   const imageMap = new Map(); // key: item text, value: imageUrl
 
@@ -65,15 +59,11 @@ export const runWorkflow = async ({
   // Create the batch processor
   const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
 
-  // ----------------------------
-  // 3. Helper Functions
-  // ----------------------------
-
   /**
    * processMemberRating: fetches rated attributes for a single member
    * and initially sets the imageUrl to null or a placeholder—later reconciled after batch finalize.
    */
-  const processMemberRating = async (member, globalAttr) => {
+  const processMemberRating = async (domain, member, globalAttr) => {
     if (processedMembers.has(member)) return; // avoid double-processing
     processedMembers.add(member);
 
@@ -115,8 +105,8 @@ export const runWorkflow = async ({
    * processNewMembers: fetch rating data for an array of new members.
    * Called once global attributes are available.
    */
-  const processNewMembers = async (members, globalAttr) => {
-    await Promise.all(members.map((m) => processMemberRating(m, globalAttr)));
+  const processNewMembers = async (domain, members, globalAttr) => {
+    await Promise.all(members.map((m) => processMemberRating(domain, m, globalAttr)));
   };
 
   /**
@@ -252,7 +242,7 @@ export const runWorkflow = async ({
       domainMembers.push(lastMember);
       if (!processedMembers.has(lastMember)) {
         if (globalAttributesFetched && globalAttrLocal) {
-          await processMemberRating(lastMember, globalAttrLocal);
+          await processMemberRating(domain, lastMember, globalAttrLocal);
         } else {
           pendingRatingMembers.push(lastMember);
         }
