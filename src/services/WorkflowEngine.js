@@ -59,53 +59,55 @@ export const runWorkflow = async ({
   // Create the batch processor
   const batchProcessor = new BatchProcessor(handleBatchProcessed, addLog);
 
-    /**
-     * processMemberRating: fetches rated attributes for a single member,
-     * adding the domain context to the result.
-     */
-    const processMemberRating = async (domain, member, globalAttr) => {
-        if (processedMembers.has(member)) return; // avoid double-processing
-        processedMembers.add(member);
-    
-        try {
-        const result = await fetchRatedAttributesForItem(member, globalAttr);
-        // Build a nested structure to match the PCA logic.
-        let finalRatedObj = {};
-        if (result && typeof result === 'object') {
-            if (result.hasOwnProperty(member)) {
-            finalRatedObj = { [member]: result[member] };
-            } else {
-            finalRatedObj = { [member]: result };
-            }
+  /**
+   * processMemberRating: fetches rated attributes for a single member
+   * and initially sets the imageUrl to null or a placeholder—later reconciled after batch finalize.
+   */
+  const processMemberRating = async (member, globalAttr) => {
+    if (processedMembers.has(member)) return; // avoid double-processing
+    processedMembers.add(member);
+
+    try {
+      const result = await fetchRatedAttributesForItem(member, globalAttr);
+      // We assume `result` might look like:
+      // { "1967 Ford Mustang GT": { "acceleration-0-60": 8, "top-speed": 9, ... } }
+      // or possibly just { "acceleration-0-60": 8, "top-speed": 9, ... }.
+
+      // Build a nested structure to match the PCA logic (where we skip "imageUrl" key).
+      let finalRatedObj = {};
+      if (result && typeof result === 'object') {
+        if (result.hasOwnProperty(member)) {
+          finalRatedObj = { [member]: result[member] };
+        } else {
+          finalRatedObj = { [member]: result };
         }
-    
-        // For now, set imageUrl to null (or a placeholder).
-        ratedAttributes.push({
-            member,
-            domain, // Include the domain context
-            attributes: {
-            ...finalRatedObj,
-            imageUrl: null,
-            },
-            success: true,
-        });
-        } catch (err) {
-        ratedAttributes.push({
-            member,
-            domain, // Include the domain context even on failure
-            error: err.message,
-            success: false,
-        });
-        }
-    };
-    
-    /**
-     * processNewMembers: fetch rating data for an array of new members.
-     * Called once global attributes are available.
-     */
-    const processNewMembers = async (domain, members, globalAttr) => {
-        await Promise.all(members.map((m) => processMemberRating(domain, m, globalAttr)));
-    };
+      }
+
+      // For now, set imageUrl to null (or a placeholder).
+      ratedAttributes.push({
+        member,
+        attributes: {
+          ...finalRatedObj,
+          imageUrl: null,
+        },
+        success: true,
+      });
+    } catch (err) {
+      ratedAttributes.push({
+        member,
+        error: err.message,
+        success: false,
+      });
+    }
+  };
+
+  /**
+   * processNewMembers: fetch rating data for an array of new members.
+   * Called once global attributes are available.
+   */
+  const processNewMembers = async (members, globalAttr) => {
+    await Promise.all(members.map((m) => processMemberRating(m, globalAttr)));
+  };
 
   /**
    * updatePCA: Recomputes PCA on all valid rated entries
@@ -240,7 +242,7 @@ export const runWorkflow = async ({
       domainMembers.push(lastMember);
       if (!processedMembers.has(lastMember)) {
         if (globalAttributesFetched && globalAttrLocal) {
-          await processMemberRating(domain, lastMember, globalAttrLocal);
+          await processMemberRating(lastMember, globalAttrLocal);
         } else {
           pendingRatingMembers.push(lastMember);
         }
