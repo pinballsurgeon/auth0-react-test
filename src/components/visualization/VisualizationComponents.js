@@ -35,8 +35,8 @@ export const Controls = ({ config, setConfig }) => (
       value={config.zoom}
       onChange={(value) => setConfig(prev => ({ ...prev, zoom: value }))}
       min={0.1}
-      max={2}
-      step={0.1}
+      max={20}
+      step={1}
     />
     <ControlSlider
       label="Scale X"
