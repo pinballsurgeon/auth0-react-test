@@ -1,4 +1,4 @@
-// src/components/visualization/VisualizationControls.js
+// src/components/visualization/VisualizationComponents.js
 
 export const ControlSlider = ({ label, value, onChange, min, max, step }) => (
     <div className="flex flex-col gap-2">
@@ -62,8 +62,6 @@ export const ControlSlider = ({ label, value, onChange, min, max, step }) => (
       />
     </div>
   );
-  
-  // src/components/visualization/VisualizationHeader.js
   
   export const Header = ({ searchInput, setSearchInput, handleVisualize }) => (
     <form onSubmit={handleVisualize} className="max-w-2xl mx-auto">
