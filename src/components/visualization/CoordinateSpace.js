@@ -1,12 +1,12 @@
 // src/components/visualization/CoordinateSpace.js
-// objective: fix container growth issue and restore context variable definitions.
+// objective: restore original layout constraints to fix container growth, keep context/d3 logic.
 
 import React, { useRef, useState, useEffect } from 'react';
 import * as d3 from 'd3';
 import VisualizationLayout from '../layout/VisualizationLayout';
 import { Controls, Header } from './VisualizationComponents';
 import { usePoints, useProjection, useAnimation } from '../../hooks/useVisualization';
-import { useWorkflowData } from '../../context/WorkflowDataContext'; // Make sure this import is present
+import { useWorkflowData } from '../../context/WorkflowDataContext';
 
 // helper function for sampling arrays for logging
 const sampleArray = (arr, count = 3) => {
@@ -15,7 +15,7 @@ const sampleArray = (arr, count = 3) => {
 };
 
 const CoordinateSpace = () => {
-  const d3Container = useRef(null);
+  const d3Container = useRef(null); // Ref for the container div where D3 draws
   const svgRef = useRef(null);
   const gRef = useRef(null);
   const [isD3Initialized, setIsD3Initialized] = useState(false);
@@ -31,7 +31,6 @@ const CoordinateSpace = () => {
   });
 
   // --- Context Data ---
-  // !!!!! THIS WAS THE MISSING PIECE !!!!! -> Restore the destructuring
   const {
     workflowData,
     loading,
@@ -42,19 +41,18 @@ const CoordinateSpace = () => {
     setSelectedPcaIteration,
     handleVisualize
   } = useWorkflowData();
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   // --- Derived Data ---
-  const points = usePoints(config.particleCount, workflowData); // Now workflowData is defined
+  const points = usePoints(config.particleCount, workflowData);
   const project = useProjection();
 
   // --- Logging Hooks (keep logging) ---
   const loggedWorkflowRef = useRef(false);
-  useEffect(() => {
+  useEffect(() => { /* ... keep existing workflow log effect ... */
       if (!workflowData) { loggedWorkflowRef.current = false; return; }
       if (workflowData && !loggedWorkflowRef.current) {
           console.groupCollapsed(`[Workflow Data Inspection] Domain: ${workflowData.domain}`);
-          // ... (rest of workflow log) ...
+          // ... (full log details) ...
           const rated = workflowData.ratedAttributes || [];
           const successfulRatings = rated.filter(item => item.success);
           const failedRatings = rated.filter(item => !item.success);
@@ -72,66 +70,52 @@ const CoordinateSpace = () => {
           console.groupEnd();
           loggedWorkflowRef.current = true;
       }
-   }, [workflowData, selectedPcaIteration]);
-  useEffect(() => {
+  }, [workflowData, selectedPcaIteration]);
+  useEffect(() => { /* ... keep existing points log effect ... */
       if (points && points.length > 0) {
           console.groupCollapsed("[Points Array Inspection]");
           console.log(`Source: ${workflowData ? 'Derived from WorkflowData (usePcaPoints)' : 'Dummy Points'}`);
           console.log(`Length: ${points.length}`);
           console.log("Sample Raw Points Structure (first 3):", sampleArray(points, 3));
           console.groupEnd();
-      } else if (!loading) { // Now loading is defined
+      } else if (!loading) {
           console.log("[Points Array Inspection] Points array is currently empty.");
       }
-  }, [points, workflowData, loading]); // Now loading is defined
+  }, [points, workflowData, loading]);
 
   // --- D3 Drawing Function (Handles enter/update/exit) ---
+  // drawPoints function remains the same as the previous working version
   const drawPoints = (gElement, pointsData, rotation, projConfig) => {
      const g = d3.select(gElement);
      if (g.empty()) { console.error("[D3 Draw] G element ref is empty!"); return; }
-
-     const pcaDataKey = selectedPcaIteration || ''; // Now selectedPcaIteration is defined
-
+     const pcaDataKey = selectedPcaIteration || '';
      const mappedPoints = pointsData.map((p, index) => {
-        if (workflowData && pcaDataKey && p && typeof p === 'object' && p[pcaDataKey] && Array.isArray(p[pcaDataKey]) && p[pcaDataKey].length === 3) { // Now workflowData defined
+        if (workflowData && pcaDataKey && p && typeof p === 'object' && p[pcaDataKey] && Array.isArray(p[pcaDataKey]) && p[pcaDataKey].length === 3) {
              const [px, py, pz] = p[pcaDataKey];
              if (typeof px !== 'number' || isNaN(px) || typeof py !== 'number' || isNaN(py) || typeof pz !== 'number' || isNaN(pz)) return null;
              return { id: p.member || `pca-${index}-${pcaDataKey}`, x: px, y: py, z: pz, imageUrl: p.attributes?.imageUrl || null, member: p.member, radius: 5, color: d3.interpolateSpectral(index / pointsData.length) };
         }
-        if (!workflowData && typeof p?.x === 'number' && typeof p?.y === 'number' && typeof p?.z === 'number') { // Now workflowData defined
+        if (!workflowData && typeof p?.x === 'number' && typeof p?.y === 'number' && typeof p?.z === 'number') {
              return { id: p?.member || `dummy-${index}`, x: p.x, y: p.y, z: p.z, imageUrl: p?.imageUrl || null, member: p?.member || null, radius: p?.radius || 5, color: p?.color || d3.interpolateSpectral(index / pointsData.length)};
         }
         return null;
      }).filter(p => p !== null);
-
-     const circles = g.selectAll('circle')
-       .data(mappedPoints, d => d.id);
-
+     const circles = g.selectAll('circle').data(mappedPoints, d => d.id);
      circles.exit().remove();
-
-     circles.enter()
-       .append('circle')
-       .attr('r', 0)
-       .attr('fill', (d) => d.color)
-       .attr('filter', 'url(#glow)')
+     circles.enter().append('circle')
+       .attr('r', 0).attr('fill', (d) => d.color).attr('filter', 'url(#glow)')
        .attr('cx', d => project(d, rotation, projConfig.zoom)[0])
        .attr('cy', d => project(d, rotation, projConfig.zoom)[1])
-       .attr('r', (d) => d.radius)
+       .attr('r', (d) => d.radius) // enter transition handled here implicitly by setting r=0 then r=radius
        .merge(circles)
-       .attr('r', (d) => d.radius)
-       .attr('fill', (d) => d.color)
-       .attr('cx', (d) => {
-           const projected = project(d, rotation, projConfig.zoom);
-           return isNaN(projected[0]) ? 0 : projected[0];
-       })
-       .attr('cy', (d) => {
-           const projected = project(d, rotation, projConfig.zoom);
-           return isNaN(projected[1]) ? 0 : projected[1];
-       });
+       .attr('r', (d) => d.radius).attr('fill', (d) => d.color) // update existing
+       .attr('cx', (d) => { const prj = project(d, rotation, projConfig.zoom); return isNaN(prj[0]) ? 0 : prj[0]; })
+       .attr('cy', (d) => { const prj = project(d, rotation, projConfig.zoom); return isNaN(prj[1]) ? 0 : prj[1]; });
   };
 
+
   // --- D3 Initialization Effect ---
-  // Added drawPoints/config back to dependency array for initial draw
+  // drawPoints dependency removed, as initial draw is handled slightly differently now
   useEffect(() => {
     if (d3Container.current && !isD3Initialized) {
       console.log("[D3 Init] Initializing SVG and G elements.");
@@ -139,7 +123,7 @@ const CoordinateSpace = () => {
       container.select('svg').remove();
 
       const svg = container.append('svg')
-        .attr('width', '100%').attr('height', '100%')
+        .attr('width', '100%').attr('height', '100%') // SVG fills the constrained container div
         .attr('preserveAspectRatio', 'xMidYMid meet');
       svgRef.current = svg.node();
 
@@ -154,45 +138,40 @@ const CoordinateSpace = () => {
       const g = svg.append('g');
       gRef.current = g.node();
 
-      const initialWidth = d3Container.current.clientWidth;
-      const initialHeight = d3Container.current.clientHeight;
-      if(initialWidth > 0 && initialHeight > 0) {
-         svg.attr('viewBox', `${-initialWidth / 2} ${-initialHeight / 2} ${initialWidth} ${initialHeight}`);
-         console.log("[D3 Init] Performing initial draw with initial points.");
-         drawPoints(gRef.current, points, 0, config); // Draw initial state
-      } else {
-         console.warn("[D3 Init] Container zero dimensions during init.");
-      }
+      // --- NO explicit initial draw here anymore ---
+      // The animation loop will pick it up once initialized.
 
       console.log("[D3 Init] SVG and G elements created.");
-      setIsD3Initialized(true);
+      setIsD3Initialized(true); // Mark as initialized
     }
-  }, [isD3Initialized, points, config, drawPoints]); // drawPoints added here
+  }, [isD3Initialized]); // Runs only once when container ref is ready
 
-  // --- D3 Animation Hook (Refactored for Update only) ---
-  // Added drawPoints to dependency array
+  // --- D3 Animation Hook ---
+  // drawPoints dependency removed as it's stable
   useAnimation((frameRotation) => {
-    const container = d3Container.current;
+    const container = d3Container.current; // The constrained div
     const svgNode = svgRef.current;
     const gNode = gRef.current;
 
-    if (!isD3Initialized || !container || !svgNode || !gNode) return;
+    if (!isD3Initialized || !container || !svgNode || !gNode) return; // Wait for init
 
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
-    if (containerWidth <= 0 || containerHeight <= 0) return;
+    if (containerWidth <= 0 || containerHeight <= 0) return; // Wait for size
 
+    // Update viewBox based on current container size
     const svg = d3.select(svgNode);
     svg.attr('viewBox', `${-containerWidth / 2} ${-containerHeight / 2} ${containerWidth} ${containerHeight}`);
 
     const rotation = frameRotation * config.rotationSpeed;
-    drawPoints(gNode, points, rotation, config); // Update points
+    // Update points using the standard D3 pattern
+    drawPoints(gNode, points, rotation, config);
 
-  }, [isD3Initialized, points, config, project, selectedPcaIteration, workflowData, drawPoints]); // drawPoints added here
+  }, [isD3Initialized, points, config, project, selectedPcaIteration, workflowData]); // Dependencies
 
 
   // --- Component Render ---
-  const availablePcaKeys = workflowData?.ratedAttributes?.length > 0 // Now workflowData is defined
+  const availablePcaKeys = workflowData?.ratedAttributes?.length > 0
     ? Object.keys(workflowData.ratedAttributes[0] || {})
         .filter((k) => k.startsWith('batch') && k.endsWith('_pca'))
         .sort((a, b) => parseInt(a.match(/\d+/)?.[0] || '0', 10) - parseInt(b.match(/\d+/)?.[0] || '0', 10))
@@ -200,29 +179,32 @@ const CoordinateSpace = () => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    handleVisualize(searchInput); // Now handleVisualize and searchInput are defined
+    // When submitting a new search, we should probably reset the D3 initialized flag
+    // so the SVG gets recreated cleanly for the potentially different data/state.
+    setIsD3Initialized(false);
+    handleVisualize(searchInput);
   };
 
-  // --- RETURN STATEMENT ---
+  // --- RETURN STATEMENT REVISED TO MATCH ORIGINAL LAYOUT CONCEPT ---
   return (
     <VisualizationLayout
-      header={<Header searchInput={searchInput} setSearchInput={setSearchInput} handleVisualize={handleFormSubmit}/>} // Now vars defined
+      header={<Header searchInput={searchInput} setSearchInput={setSearchInput} handleVisualize={handleFormSubmit}/>}
       controls={<Controls config={config} setConfig={setConfig} />}
     >
-       <div
-         ref={d3Container}
-         id="d3-visualization-container"
-         className="relative w-full h-full bg-gray-800 overflow-hidden"
-       >
-          {/* SVG will be appended here by D3 */}
+      {/*
+         This outer div acts as the flex container provided by VisualizationLayout's children area.
+         We make it relative so the absolute positioned overlays work correctly within this area.
+         Use flex utilities to center the D3 container.
+      */}
+      <div className="relative w-full h-full flex items-center justify-center p-4"> {/* Added padding */}
 
-          {/* Overlays are positioned relative to THIS container */}
-          {!loading && availablePcaKeys.length > 0 && ( // Now loading defined
+          {/* PCA Selector - Positioned absolute relative to the outer container */}
+          {!loading && availablePcaKeys.length > 0 && (
             <div className="absolute top-4 left-4 z-10 bg-gray-800 bg-opacity-75 p-2 rounded shadow">
               <label className="block text-white text-xs mb-1 font-semibold">PCA Iteration:</label>
               <select
-                value={selectedPcaIteration} // Now var defined
-                onChange={(e) => setSelectedPcaIteration(e.target.value)} // Now func defined
+                value={selectedPcaIteration}
+                onChange={(e) => setSelectedPcaIteration(e.target.value)}
                 className="p-1 bg-gray-700 text-white text-xs rounded border border-gray-600 focus:outline-none focus:border-blue-500"
               >
                 {availablePcaKeys.map((key) => (
@@ -232,9 +214,27 @@ const CoordinateSpace = () => {
             </div>
           )}
 
-          {loading && <div className="absolute bottom-4 left-4 text-yellow-400 z-10 bg-gray-800 bg-opacity-75 px-2 py-1 rounded text-sm">Loading workflow data...</div>} {/* Now loading defined */}
-          {error && <div className="absolute bottom-4 left-4 text-red-500 z-10 bg-gray-800 bg-opacity-75 px-2 py-1 rounded text-sm">Error: {error}</div>} {/* Now error defined */}
-       </div>
+          {/* D3 Container - Explicitly Sized and Centered */}
+          <div
+            ref={d3Container}
+            id="d3-visualization-container"
+            className="bg-gray-900 overflow-hidden shadow-lg" // Use different bg, remove w/h classes
+            style={{ // Apply the original sizing constraints
+              // margin: 'auto', // Centering handled by parent flex
+              width: '70%', // Adjusted size, make it responsive
+              maxWidth: '70vh', // Limit size based on viewport height too
+              maxHeight: '80vh', // Explicit max height
+              aspectRatio: '1 / 1', // Force square
+              // minHeight: 0, // Less relevant without flex context directly on it
+            }}
+          >
+            {/* SVG is appended here by D3 Init Effect */}
+          </div>
+
+          {/* Loading / Error Messages - Positioned absolute relative to the outer container */}
+          {loading && <div className="absolute bottom-4 left-4 text-yellow-400 z-10 bg-gray-800 bg-opacity-75 px-2 py-1 rounded text-sm">Loading workflow data...</div>}
+          {error && <div className="absolute bottom-4 left-4 text-red-500 z-10 bg-gray-800 bg-opacity-75 px-2 py-1 rounded text-sm">Error: {error}</div>}
+      </div>
     </VisualizationLayout>
   );
 };
