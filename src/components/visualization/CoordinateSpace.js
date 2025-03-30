@@ -1,5 +1,5 @@
 // src/components/visualization/CoordinateSpace.js
-// objective: add targeted d3/rendering logs to diagnose missing visuals despite healthy data.
+// objective: refactor d3 initialization to create svg/g once, and update circles within useanimation. add more rendering logs.
 
 import React, { useRef, useState, useEffect } from 'react';
 import * as d3 from 'd3';
@@ -15,9 +15,11 @@ const sampleArray = (arr, count = 3) => {
 };
 
 const CoordinateSpace = () => {
-  const d3Container = useRef(null);
-  const svgRef = useRef(null); // Ref specifically for the SVG element for logging
-  const gRef = useRef(null); // Ref specifically for the G element for logging
+  const d3Container = useRef(null); // Ref for the container div
+  const svgRef = useRef(null); // Ref for the main SVG element
+  const gRef = useRef(null); // Ref for the main G element where points are drawn
+  const [isD3Initialized, setIsD3Initialized] = useState(false); // Track if D3 setup ran
+
   const [config, setConfig] = useState({
     rotationSpeed: 0.5,
     scaleX: 1,
@@ -42,6 +44,7 @@ const CoordinateSpace = () => {
   const project = useProjection();
 
   // --- Smart Inspection Logging (Keep previous logs) ---
+  // ... (keep existing workflow data and points array inspection logs) ...
   const loggedWorkflowRef = useRef(false);
   useEffect(() => {
     if (!workflowData) {
@@ -83,41 +86,67 @@ const CoordinateSpace = () => {
   }, [points, workflowData, loading]);
   // --- End Smart Inspection Logging ---
 
-  const setupVisualization = (svg) => {
-    console.log("[D3 Setup] setupVisualization called."); // Log setup call
-    const defs = svg.append('defs');
-    const filter = defs.append('filter').attr('id', 'glow');
-    filter.append('feGaussianBlur').attr('stdDeviation', '2').attr('result', 'coloredBlur');
-    const feMerge = filter.append('feMerge');
-    feMerge.append('feMergeNode').attr('in', 'coloredBlur');
-    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
-    const g = svg.append('g');
-    gRef.current = g.node(); // Store G node in ref
-    console.log("[D3 Setup] <g> element created:", gRef.current);
-    return g;
-  };
 
-  const drawPoints = (g, pointsData, rotation) => {
+  // --- D3 Initialization Effect ---
+  useEffect(() => {
+    if (d3Container.current && !isD3Initialized) {
+      console.log("[D3 Init] Container available. Initializing SVG and G elements.");
+
+      const container = d3.select(d3Container.current);
+      // Clear potentially old SVG if re-initializing (shouldn't happen with isD3Initialized flag but safety)
+      container.select('svg').remove();
+
+      const svg = container
+        .append('svg')
+        .attr('width', '100%')
+        .attr('height', '100%')
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+      svgRef.current = svg.node(); // Store SVG node ref
+
+      // Setup defs (glow filter) - only needs to happen once
+      const defs = svg.append('defs');
+      const filter = defs.append('filter').attr('id', 'glow');
+      filter.append('feGaussianBlur').attr('stdDeviation', '2').attr('result', 'coloredBlur');
+      const feMerge = filter.append('feMerge');
+      feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+      feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+      // Setup the main group element for drawing points
+      const g = svg.append('g');
+      gRef.current = g.node(); // Store G node ref
+
+      console.log("[D3 Init] SVG and G elements created and stored in refs.", { svg: svgRef.current, g: gRef.current });
+      setIsD3Initialized(true); // Mark as initialized
+    }
+  }, [isD3Initialized]); // Runs once when container is ready
+
+  // --- D3 Drawing Function (minor changes) ---
+  const drawPoints = (gElement, pointsData, rotation) => {
+     // Select the G element using d3.select on the stored node
+     const g = d3.select(gElement);
+     if (g.empty()) {
+         console.error("[D3 Draw] G element ref is empty! Cannot draw.");
+         return;
+     }
+
     const pcaDataKey = selectedPcaIteration || '';
-    // console.log(`[D3 Draw] drawPoints called. PCA Key: '${pcaDataKey}'. Items: ${pointsData.length}`); // Keep this minimal
+    // console.log(`[D3 Draw] drawPoints called. PCA Key: '${pcaDataKey}'. Items: ${pointsData.length}`);
 
     const mappedPoints = pointsData.map((p, index) => {
         if (workflowData && pcaDataKey && p && typeof p === 'object' && p[pcaDataKey] && Array.isArray(p[pcaDataKey]) && p[pcaDataKey].length === 3) {
-             // check if pca data is valid numbers
              const [px, py, pz] = p[pcaDataKey];
              if (typeof px !== 'number' || isNaN(px) || typeof py !== 'number' || isNaN(py) || typeof pz !== 'number' || isNaN(pz)) {
                   console.warn(`[D3 Draw] Invalid PCA data for ${p.member || index}:`, p[pcaDataKey]);
-                  return null; // Filter this out later
+                  return null;
              }
             return { id: p.member || `pca-${index}`, x: px, y: py, z: pz, imageUrl: p.attributes?.imageUrl || null, member: p.member, radius: 5, color: d3.interpolateSpectral(index / pointsData.length) };
         }
-        // check dummy points structure - assuming they have x, y, z, radius, color
         if (typeof p?.x === 'number' && typeof p?.y === 'number' && typeof p?.z === 'number') {
              return { id: p?.member || `dummy-${index}`, x: p.x, y: p.y, z: p.z, imageUrl: p?.imageUrl || null, member: p?.member || null, radius: p?.radius || 5, color: p?.color || d3.interpolateSpectral(index / pointsData.length)};
         }
-        console.warn(`[D3 Draw] Skipping invalid point data structure at index ${index}:`, p);
-        return null; // Filter out invalid structures
-    }).filter(p => p !== null); // Remove nulls added above
+        // console.warn(`[D3 Draw] Skipping invalid point data structure at index ${index}:`, p); // Can be noisy
+        return null;
+    }).filter(p => p !== null);
 
     if (pointsData.length > 0 && mappedPoints.length === 0) {
          console.error("[D3 Draw] mappedPoints array is empty despite receiving pointsData. Check mapping logic!", pointsData);
@@ -125,94 +154,77 @@ const CoordinateSpace = () => {
 
     const circles = g.selectAll('circle').data(mappedPoints, d => d.id);
 
-    const enterSelection = circles.enter().append('circle'); // Store enter selection
+    const enterSelection = circles.enter().append('circle');
 
-    enterSelection.merge(circles) // Merge enter and update selections
+    // Logging attributes for entering circles (sample)
+    if (!enterSelection.empty()) {
+         const sampleEnter = enterSelection.datum();
+         const projectedSample = project(sampleEnter, rotation, config.zoom);
+         console.log(`[D3 Enter Sample] R: ${sampleEnter.radius}, Fill: ${sampleEnter.color}, CX: ${projectedSample[0]}, CY: ${projectedSample[1]}`);
+    }
+
+
+    enterSelection.merge(circles)
       .attr('r', (d) => d.radius)
       .attr('fill', (d) => d.color)
       .attr('filter', 'url(#glow)')
       .attr('cx', (d) => {
           const projected = project(d, rotation, config.zoom);
-          // --- LOG Projection ---
-          // if (Math.random() < 0.05) { // Log ~5% of points per frame
-          //     console.log(`[D3 Draw] Point ${d.id}: raw[${d.x.toFixed(1)},${d.y.toFixed(1)},${d.z.toFixed(1)}] -> projected[${projected[0].toFixed(1)}, ${projected[1].toFixed(1)}]`);
-          // }
-          if (isNaN(projected[0]) || isNaN(projected[1])) {
-              console.error(`[D3 Draw] NaN projection for point ${d.id}!`, d, projected);
-              return 0; // Avoid setting NaN attribute
+          if (isNaN(projected[0])) {
+              console.error(`[D3 Draw] NaN cx projection for point ${d.id}!`, d, projected); return 0;
           }
           return projected[0];
       })
       .attr('cy', (d) => {
           const projected = project(d, rotation, config.zoom);
-          if (isNaN(projected[0]) || isNaN(projected[1])) {
-              return 0; // Avoid setting NaN attribute
+           if (isNaN(projected[1])) {
+              console.error(`[D3 Draw] NaN cy projection for point ${d.id}!`, d, projected); return 0;
           }
           return projected[1];
       });
 
-    const exitSelection = circles.exit(); // Store exit selection
-    exitSelection.remove();
-
-    // --- LOG D3 Update Cycle ---
-    // Log counts only if they change significantly or periodically
-    // Use requestAnimationFrame count or similar to log less frequently
-    // console.log(`[D3 Update] Enter: ${enterSelection.size()}, Update: ${circles.size()}, Exit: ${exitSelection.size()}`);
+    circles.exit().remove();
   };
 
 
-  useAnimation((rotation) => {
+  // --- D3 Animation Hook (Refactored) ---
+  useAnimation(() => { // removed rotation from callback args, get it internally
     const container = d3Container.current;
-    if (!container) {
-        // console.log("[Animation] No d3Container ref yet.");
+    const svgNode = svgRef.current;
+    const gNode = gRef.current; // Get G node from ref
+
+    // Ensure D3 is initialized and container/elements exist
+    if (!isD3Initialized || !container || !svgNode || !gNode) {
+        // console.log("[Animation] Waiting for D3 initialization or elements.");
         return;
     }
 
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
-
-    // --- LOG Container Size ---
-    // console.log(`[Animation] Frame. Container size: ${containerWidth}x${containerHeight}`);
     if (containerWidth <= 0 || containerHeight <= 0) {
         // console.log("[Animation] Skipping draw: Container has zero dimensions.");
         return;
     }
 
-    let svg = d3.select(svgRef.current); // Select using the ref
-    if (svg.empty()) {
-      // --- LOG SVG Creation ---
-      console.log("[Animation] SVG element not found or ref empty, creating SVG.");
-      svg = d3.select(container) // Select container directly
-        .append('svg')
-        .attr('width', '100%')
-        .attr('height', '100%')
-        .attr('preserveAspectRatio', 'xMidYMid meet');
-      svgRef.current = svg.node(); // Store SVG node in ref
-    }
-
-    // Setup viewBox every frame? Or just once? Let's keep it for now.
+    // Update viewBox on the persistent SVG element
+    const svg = d3.select(svgNode);
     const viewBoxX = -containerWidth / 2;
     const viewBoxY = -containerHeight / 2;
     svg.attr('viewBox', `${viewBoxX} ${viewBoxY} ${containerWidth} ${containerHeight}`);
 
+    // Clear the persistent G element before drawing
+    d3.select(gNode).selectAll('*').remove();
 
-    let g = d3.select(gRef.current); // Select using the ref
-    if (g.empty()) {
-        // --- LOG G Creation ---
-       console.log("[Animation] G element not found or ref empty, calling setupVisualization.");
-       g = setupVisualization(svg); // setupVisualization stores node in gRef now
-    } else {
-       // Clear G element if it already exists
-       g.selectAll('*').remove();
-    }
+    // Calculate rotation internally (if needed, or pass from hook if preferred)
+    const rotation = (performance.now() / (1000 / 60) * config.rotationSpeed); // Simple time based rotation
 
-    // --- LOG Draw Call ---
-    // console.log(`[Animation] Calling drawPoints with ${points.length} points.`);
-    drawPoints(g, points, rotation * config.rotationSpeed);
+    // Call drawPoints with the persistent G node and current data/rotation
+    drawPoints(gNode, points, rotation);
 
-  }, [points, config, project, selectedPcaIteration, workflowData]); // dependencies
+  }, [isD3Initialized, points, config, project, selectedPcaIteration, workflowData]); // Keep dependencies that affect points or projection
 
 
+  // --- Component Render ---
   const availablePcaKeys = workflowData?.ratedAttributes?.length > 0
     ? Object.keys(workflowData.ratedAttributes[0] || {})
         .filter((k) => k.startsWith('batch') && k.endsWith('_pca'))
@@ -225,6 +237,7 @@ const CoordinateSpace = () => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    setIsD3Initialized(false); // Reset D3 flag on new search to force re-init? Maybe not needed if SVG clear works. Let's keep it simple first.
     handleVisualize(searchInput);
   };
 
@@ -256,14 +269,14 @@ const CoordinateSpace = () => {
               </div>
             )}
 
-            {/* The container where D3 will append the SVG */}
-            {/* Ensure this div itself is visible and sized correctly */}
+            {/* The container where D3 setup happens ONCE */}
             <div
               ref={d3Container}
-              id="d3-visualization-container" // Add ID for easier selection in dev tools
-              className="absolute inset-0 w-full h-full bg-gray-800 overflow-hidden" // Changed bg slightly for visibility
+              id="d3-visualization-container"
+              className="absolute inset-0 w-full h-full bg-gray-800 overflow-hidden"
+              style={{ border: '1px dashed lime' }} // TEMPORARY: Add border to visually confirm container exists/is sized
             >
-             {/* SVG will be appended here by D3 */}
+             {/* SVG WILL BE APPENDED HERE BY THE useEffect HOOK */}
             </div>
 
             {loading && <div className="absolute bottom-4 left-4 text-yellow-400 z-10 bg-gray-800 bg-opacity-75 px-2 py-1 rounded text-sm">Loading workflow data...</div>}
