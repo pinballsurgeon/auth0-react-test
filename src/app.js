@@ -1,7 +1,6 @@
+// src/App.js
+// objective: make the shared workflow state available to the relevant parts of the application.
 
-// auth0-react-test\src\app.js
-
-// app.js
 import { useAuth0 } from "@auth0/auth0-react";
 import React from "react";
 import { Route, Routes } from "react-router-dom";
@@ -17,6 +16,9 @@ import { PublicPage } from "./pages/public-page";
 import { CoordinateSpacePage } from "./pages/coordinate-page";
 // import { GeometryPage } from "./pages/tools/geometry-page";
 
+// import the workflow data provider
+import { WorkflowDataProvider } from './context/WorkflowDataContext';
+
 export const App = () => {
   const { isLoading } = useAuth0();
 
@@ -29,25 +31,30 @@ export const App = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      {/* <Route path="/geometry" element={<GeometryPage />} /> */}
-      <Route
-        path="/profile"
-        element={<AuthenticationGuard component={ProfilePage} />}
-      />
-      <Route path="/public" element={<PublicPage />} />
-      <Route
-        path="/protected"
-        element={<AuthenticationGuard component={ProtectedPage} />}
-      />
-      <Route
-        path="/admin"
-        element={<AuthenticationGuard component={AdminPage} />}
-      />
-      <Route path="/callback" element={<CallbackPage />} />
-      <Route path="*" element={<NotFoundPage />} />
-      <Route path="/coordinate-space" element={<CoordinateSpacePage />} />
-    </Routes>
+    // wrap the routes that need access to the workflow context
+    // in this case, we wrap all routes for simplicity, but could be more specific
+    <WorkflowDataProvider>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        {/* <Route path="/geometry" element={<GeometryPage />} /> */}
+        <Route
+          path="/profile"
+          element={<AuthenticationGuard component={ProfilePage} />}
+        />
+        <Route path="/public" element={<PublicPage />} />
+        <Route
+          path="/protected"
+          element={<AuthenticationGuard component={ProtectedPage} />}
+        />
+        <Route
+          path="/admin"
+          element={<AuthenticationGuard component={AdminPage} />}
+        />
+        <Route path="/callback" element={<CallbackPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+        {/* the coordinate space page now implicitly has access to the context */}
+        <Route path="/coordinate-space" element={<CoordinateSpacePage />} />
+      </Routes>
+    </WorkflowDataProvider>
   );
 };
