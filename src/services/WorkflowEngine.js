@@ -35,14 +35,21 @@ export const runWorkflow = async ({
   const pendingRatingMembers = []; // members waiting for global attributes
 
   // ---- Logging Utility ----
-  // use LogService or console.log directly for engine-specific diagnostics
   const engineLog = (message, level = 'info', data = null) => {
-    console[level](`[WorkflowEngine] ${message}`, data !== null ? data : '');
-    // also push to the main log array if needed for UI display
+    const validLevels = ['log', 'info', 'warn', 'error', 'debug', 'success']; // Add 'success' if you use it
+    // --- Defensive Check ---
+    const validatedLevel = validLevels.includes(level) ? level : 'info'; // Default to 'info' if invalid level passed
+    if (!validLevels.includes(level)) {
+        console.warn(`[WorkflowEngine] Invalid log level "${level}" provided. Defaulting to "info". Original message:`, message);
+    }
+    // --- Use validatedLevel ---
+    const logMethod = validatedLevel === 'success' ? console.info : console[validatedLevel]; // Treat 'success' like 'info' for console
+    logMethod(`[WorkflowEngine] ${message}`, data !== null ? data : '');
+
     const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
-    const logEntry = { message: `[${timestamp}] [Engine] ${message}`, type: level };
+    const logEntry = { message: `[${timestamp}] [Engine] ${message}`, type: validatedLevel }; // Use validated level here too
     logs.push(logEntry);
-    logCallback(logEntry); // notify external listeners
+    logCallback(logEntry);
   };
 
   // ---- Batch Processing Setup ----
