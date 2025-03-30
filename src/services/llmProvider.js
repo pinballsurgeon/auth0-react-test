@@ -61,6 +61,7 @@ export const generateDomainItemsStream = async (domain, model = MODELS.GEMINI, o
               }
             } catch (e) {
               console.error('Error parsing SSE data:', e);
+              console.error('Data that failed parsing:', data);
             }
           }
         }
